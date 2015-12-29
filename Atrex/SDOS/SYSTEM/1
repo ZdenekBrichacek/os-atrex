@@ -1,0 +1,19 @@
+	push   00355                          
+	pop    ss                             
+	lea    sp,[00104]                     
+	call   A1
+A1:
+	push   ax                             
+	pushf                                 
+	cli                                   
+	or     w,cs:[008CA],040  ;"@"         
+	or     d,cs:[0089C],000000080         
+	mov    al,00F                         
+	out    084,al                         
+	mov    al,000                         
+	out    085,al                         
+	jmps   A2
+A2:
+	popf                                  
+	pop    ax                             
+	ret

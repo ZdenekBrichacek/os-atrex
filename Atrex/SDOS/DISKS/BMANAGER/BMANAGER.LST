@@ -1,0 +1,3261 @@
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 1
+bmanager.asm
+
+
+
+      1	    0000			 _TEXT	 segment
+      2					 assume	 cs:_TEXT, ds:_TEXT, es:_TEXT, ss:_TEXT
+      3					 .486P
+      4					 org 100h
+      5	    0100			 @Filename:
+      6	    0100  4A				 dec	 dx
+      7	    0101  42				 inc	 dx
+      8	    0102  EB 74	90			 jmp	 _BManager__
+      9					 include header.inc
+1    10	00000105			 HeaderSt	 struc
+1    11											 ;>
+1    12	00000000  01*(31 36 2F 30 31  +		 _DATE_		 db	 ??DATE		 ;vyplÂuje LINKER
+     13		  2F 39	38)
+1    14	00000008  01*(62 6D 61 6E 61  +		 _FILENAME_	 db	 ??FILENAME	 ;
+     15		  67 65	72)
+1    16	00000010  01*(31 31 3A 30 33  +		 _TIME_		 db	 ??TIME		 ;
+     17		  3A 32	33)
+1    18	00000018  01*(0314)			 _LINKVER_	 dw	 ??VERSION	 ;
+1    19	0000001A  01*(1F9F)			 _CPU_		 dw	 @CPU		 ;
+1    20											 ;<
+1    21	0000001C  01*(0001)			 _OSMajorVer	 dw	 0001h
+1    22	0000001E  01*(0000)			 _OSMinorVer	 dw	 0000h
+1    23	00000020  01*(0010)			 _OSBuildVer	 dw	 0010h
+1    24	00000022  01*(42)			 _OSSubVer	 db	 "B"
+1    25	00000023  01*(00)			 _OSMode	 db	 00h		 ;0 - vÁechny ,	1 - re†lnÏ,
+1    26											 ; 2 - chr†nÿnÏ
+1    27	00000024  01*(0E)			 _OS		 db	 0Eh		 ;ATREX	(SDOS)
+1    28	00000025  01*(41545245)			 _OS_		 dd	 "ATRE"
+1    29	00000029  01*(584F5378)			 _OS__		 dd	 "XOSx"
+1    30	0000002D  01*(0000)			 _ModuleType	 dw	 0000h		 ;1 - COM, 2 - DAT, 3 -	OVL,
+1    31											 ; 4 - font, 5 - DLL, 6	- SYS
+1    32	0000002F  01*(00)			 _OSGrSubsystem	 db	 00h		 ;11h -	GUI, 22h - TEXT
+1    33	00000030  01*(0000)			 _ModuleFlags	 dw	 0000h		 ;xx11h	- aplikace, xx22h - TSR
+1    34											 ; 00xxh - 8bit, 11xx -	16bit
+1    35											 ; 22xxh - 32bit, 33xx - 64bit
+1    36	00000032  01*(0001)			 _ModMajorVer	 dw	 0001h
+1    37	00000034  01*(0000)			 _ModMinorVer	 dw	 0000h
+1    38	00000036  01*(0010)			 _ModBuildVer	 dw	 0010h
+1    39	00000038  01*(42)			 _ModSubVer	 db	 "B"
+1    40
+1    41	00000039  01*(00)			 _NeedCPU	 db	 00h		 ;00h -	8086, 11h - 386
+1    42											 ; 22h - 486, 33h - 586
+1    43	0000003A  01*(00)			 _NeedFPU	 db	 00h		 ;00h -	ne, 11h	- ano
+1    44	0000003B  01*(00000000)			 _StartEIP	 dd	 00000000h	 ;Startovac° instrukce EIP
+1    45	0000003F  01*(0000)			 _StartCS	 dw	 0000h		 ;Startovac° segment
+1    46											 ; -mus° se nakop°rovat	tam!!!
+1    47	00000041  01*(00000000)			 _DataTblOff	 dd	 00000000h
+1    48	00000045  01*(0000)			 _DataTblSeg	 dw	 0000h
+1    49	00000047  01*(00000000)			 _ResourceTblOff dd	 00000000h
+1    50	0000004B  01*(0000)			 _ResourceTblSeg dw	 0000h
+1    51	0000004D  01*(00000000)			 _CodeTableOff	 dd	 00000000h
+1    52	00000051  01*(0000)			 _CodeTableSeg	 dw	 0000h
+1    53	00000053  01*(00000000)			 _ImportTblOff	 dd	 00000000h
+1    54	00000057  01*(0000)			 _ImportTblSeg	 dw	 0000h
+1    55	00000059  01*(00000000)			 _ExportTblOff	 dd	 00000000h
+1    56	0000005D  01*(0000)			 _ExportTblSeg	 dw	 0000h
+1    57	0000005F  01*(00000000)			 _StartSP	 dd	 00000000h
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 2
+bmanager.asm
+
+
+
+1    58	00000063  01*(0000)			 _StartSS	 dw	 0000h
+1    59	00000065  01*(0000)			 _MinMem	 dw	 0000h		 ;Pot˝ebn† pamÿú MinMem	* 16
+1    60	00000067  01*(0000)			 _MaxMem	 dw	 0000h
+1    61	00000069  01*(FFFFFFFF)			 _CheckSumCRC	 dd	 0FFFFFFFFh		 ;Kontroln° souüet
+1    62	0000006D  01*(00)			 _NeedDOSEnvir	 db	 00h		 ;0 - ne, 1 - ano
+1    63	0000006E  01*(00000000)			 _FileSize	 dd	 00000000h
+1    64	00000072  01*(00)			 _LoadedOK_	 db	 00h		 ;00 - mus° bÏt	v souboru
+1    65											 ; 011h	- (v pamÿti) OK
+1    66											 ; 0FFh	- (v pamÿti) CHYBA
+1    67											 ; nastavuje inicializaün° rutina
+1    68											 ; potvrzen° zaveden° na spr†vnÇ
+1    69											 ; m°sto, vyplnÿn° pot˝ebnÏch
+1    70											 ; poloßek a spr†vnost systÇmu
+1    71	00000073			 HeaderSt	 ends
+1    72	    0105  31 36	2F 30 31 2F 39+	 HeaderSt_ HeaderSt<>
+     73		  38 62	6D 61 6E 61 67+
+     74		  65 72	31 31 3A 30 33+
+     75		  3A 32	33 0314	1F9F  +
+     76		  0001 0000 0010 42 00+
+     77		  0E 41545245 584F5378+
+     78		  0000 00 0000 0001   +
+     79		  0000 0010 42 00 00  +
+     80		  00000000 0000	      +
+     81		  00000000 0000	      +
+     82		  00000000 0000	      +
+     83		  00000000 0000	      +
+     84		  00000000 0000	      +
+     85		  00000000 0000	      +
+     86		  00000000 0000	0000  +
+     87		  0000 FFFFFFFF	00    +
+     88		  00000000 00
+1    89
+     90	    0178			 _BManager__:
+     91	    0178  B4 05				 mov	 ah, 05h
+     92	    017A  B0 00				 mov	 al, 0
+     93	    017C  CD 10				 Int	 10H
+     94	    017E  B8 005C			 mov	 ax, 005Ch
+     95	    0181  CD 10				 int	 10h
+     96
+     97	    0183  8C C8				 mov	 ax, cs
+     98	    0185  8E C0				 mov	 es, ax
+     99	    0187  33 DB				 xor	 bx, bx
+    100	    0189  B9 0100			 mov	 cx, 256
+    101	    018C  BA 2B48r			 mov	 dx, offset V_DAC_STD
+    102	    018F  B8 1012			 mov	 ax, 1012h
+    103	    0192  CD 10				 int	 10h
+    104	    0194  E8 00A3			 call	 Show_Logo
+    105
+    106	    0197  E8 0DD0			 Call	 TestIfHdd
+    107	    019A  C6 06	0996r 80 90		 mov	 BF, 80h
+    108	    01A0  80 3E	0995r 01		 cmp	 Disks,	1
+    109	    01A5  74 1F	90 90			 je	 St_1
+    110	    01A9  BA 0703			 mov	 dx, 0703h
+    111	    01AC  E8 0441			 call	 GotoXY
+    112	    01AF  66| 8D 36 15ACr		 lea	 esi, DiskT.D1
+    113	    01B4  C6 06	1005r 70 90		 mov	 VideoAtribut, 070h
+    114	    01BA  E8 03CC			 call	 PrtStr
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 3
+bmanager.asm
+
+
+
+    115	    01BD  E8 06D6			 Call	 KeybDev_
+    116	    01C0  BA 0000			 mov	 dx, 00000h
+    117	    01C3  E8 042A			 call	 GotoXY
+    118	    01C6			 St_1:
+    119	    01C6  8C C8				 mov	 ax, cs
+    120	    01C8  8E D8				 mov	 ds, ax
+    121	    01CA  8E C0				 mov	 es, ax
+    122	    01CC  8E E0				 mov	 fs, ax
+    123	    01CE  C6 06	1005r 70 90		 mov	 VideoAtribut, 070h
+    124	    01D4  66| 8D 36 10DBr		 lea	 esi, PrintMenuTableF
+    125	    01D9  E8 03AD			 call	 PrtStr
+    126	    01DC  66| 8D 36 11E6r		 lea	 esi, PrintMenuTableM
+    127	    01E1  E8 03A5			 call	 PrtStr
+    128	    01E4  66| 8D 36 11E6r		 lea	 esi, PrintMenuTableM
+    129	    01E9  E8 039D			 call	 PrtStr
+    130	    01EC  66| 8D 36 11E6r		 lea	 esi, PrintMenuTableM
+    131	    01F1  E8 0395			 call	 PrtStr
+    132	    01F4  66| 8D 36 11E6r		 lea	 esi, PrintMenuTableM
+    133	    01F9  E8 038D			 call	 PrtStr
+    134	    01FC  66| 8D 36 11E6r		 lea	 esi, PrintMenuTableM
+    135	    0201  E8 0385			 call	 PrtStr
+    136	    0204  66| 8D 36 11E6r		 lea	 esi, PrintMenuTableM
+    137	    0209  E8 037D			 call	 PrtStr
+    138	    020C  66| 8D 36 11E6r		 lea	 esi, PrintMenuTableM
+    139	    0211  E8 0375			 call	 PrtStr
+    140	    0214  66| 8D 36 11E6r		 lea	 esi, PrintMenuTableM
+    141	    0219  E8 036D			 call	 PrtStr
+    142	    021C  66| 8D 36 11E6r		 lea	 esi, PrintMenuTableM
+    143	    0221  E8 0365			 call	 PrtStr
+    144	    0224  66| 8D 36 123Dr		 lea	 esi, PrintMenuTableE
+    145	    0229  E8 035D			 call	 PrtStr
+    146
+    147	    022C  B3 00				 mov	 bl,0
+    148	    022E  E8 003F			 call	 Print_Info
+    149	    0231  E8 0427			 Call	 KeybDev
+    150					 ;	 xor	 ax, ax
+    151					 ;	 int	 16h
+    152	    0234  B8 0003			 mov	 ax, 0003h
+    153	    0237  CD 10				 int	 10h
+    154	    0239  C3				 ret
+    155
+    156	    023A			 Show_Logo	 proc
+    157	    023A  E8 03EF			 Call	 SetSegments
+    158	    023D  BE 15CCr			 lea	 si, Logo_Gr
+    159	    0240  33 C9				 xor	 cx, cx
+    160	    0242			 Show_Logo_1:
+    161	    0242  89 0E	026Er			 mov	 Show_Logo_Y, cx
+    162	    0246  51				 push	 cx
+    163	    0247  33 C9				 xor	 cx, cx
+    164	    0249			 Show_Logo_2:
+    165	    0249  89 0E	026Cr			 mov	 Show_Logo_X, cx
+    166	    024D  51				 push	 cx
+    167	    024E  AC				 lodsb
+    168	    024F  B4 0C				 mov	 ah, 0Ch
+    169	    0251  B7 00				 mov	 bh, 0
+    170	    0253  8B 0E	026Er			 mov	 cx, Show_Logo_Y
+    171	    0257  8B 16	026Cr			 mov	 dx, Show_Logo_X
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 4
+bmanager.asm
+
+
+
+    172	    025B  CD 10				 int	 10h
+    173	    025D  59				 pop	 cx
+    174	    025E  41				 inc	 cx
+    175	    025F  83 F9	37			 cmp	 cx, 55
+    176	    0262  75 E5				 jne	 Show_Logo_2
+    177	    0264  59				 pop	 cx
+    178	    0265  41				 inc	 cx
+    179	    0266  83 F9	64			 cmp	 cx, 100
+    180	    0269  75 D7				 jne	 Show_Logo_1
+    181	    026B  C3				 ret
+    182	    026C  0000			 Show_Logo_X	 dw	 0000
+    183	    026E  0000			 Show_Logo_Y	 dw	 0000
+    184	    0270			 Show_Logo	 endp
+    185
+    186	    0270			 Print_Info	 proc
+    187
+    188	    0270  8A 16	0996r			 mov	 dl, BF
+    189	    0274  B6 00				 mov	 dh, 00h
+    190	    0276  B9 0001			 mov	 cx, 0001h
+    191	    0279  E8 0723			 call	 ReadMBR
+    192
+    193	    027C  BA 0703			 mov	 dx, 0703h
+    194	    027F  E8 036E			 call	 GotoXY
+    195	    0282  66| 8D 36 1294r		 lea	 esi, Table1.Jmeno
+    196	    0287  E8 02FF			 call	 PrtStr
+    197	    028A  BA 0710			 mov	 dx, 0710h
+    198	    028D  E8 0360			 call	 GotoXY
+    199	    0290  66| 8D 36 12A0r		 lea	 esi, Table1.Popis
+    200	    0295  E8 02F1			 call	 PrtStr
+    201	    0298  BA 0727			 mov	 dx, 0727h
+    202	    029B  66| A1 12E6r			 mov	 eax, Table1._Size
+    203	    029F  E8 0395			 Call	 PrintHex32
+    204					 ;	 lea	 esi, Table1.Velikost
+    205					 ;	 call	 PrtStr
+    206	    02A2  BA 072E			 mov	 dx, 072Eh
+    207	    02A5  E8 0348			 call	 GotoXY
+    208	    02A8  66| 8D 36 12BDr		 lea	 esi, Table1.System
+    209	    02AD  E8 02D9			 call	 PrtStr
+    210	    02B0  BA 0738			 mov	 dx, 0738h
+    211	    02B3  E8 033A			 call	 GotoXY
+    212	    02B6  66| 8D 36 12C5r		 lea	 esi, Table1.Disk
+    213	    02BB  E8 02CB			 call	 PrtStr
+    214	    02BE  BA 073F			 mov	 dx, 073Fh
+    215	    02C1  E8 032C			 call	 GotoXY
+    216	    02C4  66| 8D 36 12CBr		 lea	 esi, Table1.Poznamka
+    217	    02C9  E8 02BD			 call	 PrtStr
+    218
+    219	    02CC  BA 0803			 mov	 dx, 0803h
+    220	    02CF  E8 031E			 call	 GotoXY
+    221	    02D2  66| 8D 36 12ECr		 lea	 esi, Table2.Jmeno
+    222	    02D7  E8 02AF			 call	 PrtStr
+    223	    02DA  BA 0810			 mov	 dx, 0810h
+    224	    02DD  E8 0310			 call	 GotoXY
+    225	    02E0  66| 8D 36 12F8r		 lea	 esi, Table2.Popis
+    226	    02E5  E8 02A1			 call	 PrtStr
+    227	    02E8  BA 0827			 mov	 dx, 0827h
+    228	    02EB  66| A1 133Er			 mov	 eax, Table2._Size
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 5
+bmanager.asm
+
+
+
+    229	    02EF  E8 0345			 Call	 PrintHex32
+    230					 ;	 call	 GotoXY
+    231					 ;	 lea	 esi, Table2.Velikost
+    232					 ;	 call	 PrtStr
+    233	    02F2  BA 082E			 mov	 dx, 082Eh
+    234	    02F5  E8 02F8			 call	 GotoXY
+    235	    02F8  66| 8D 36 1315r		 lea	 esi, Table2.System
+    236	    02FD  E8 0289			 call	 PrtStr
+    237	    0300  BA 0838			 mov	 dx, 0838h
+    238	    0303  E8 02EA			 call	 GotoXY
+    239	    0306  66| 8D 36 131Dr		 lea	 esi, Table2.Disk
+    240	    030B  E8 027B			 call	 PrtStr
+    241	    030E  BA 083F			 mov	 dx, 083Fh
+    242	    0311  E8 02DC			 call	 GotoXY
+    243	    0314  66| 8D 36 1323r		 lea	 esi, Table2.Poznamka
+    244	    0319  E8 026D			 call	 PrtStr
+    245
+    246	    031C  BA 0903			 mov	 dx, 0903h
+    247	    031F  E8 02CE			 call	 GotoXY
+    248	    0322  66| 8D 36 1344r		 lea	 esi, Table3.Jmeno
+    249	    0327  E8 025F			 call	 PrtStr
+    250	    032A  BA 0910			 mov	 dx, 0910h
+    251	    032D  E8 02C0			 call	 GotoXY
+    252	    0330  66| 8D 36 1350r		 lea	 esi, Table3.Popis
+    253	    0335  E8 0251			 call	 PrtStr
+    254	    0338  BA 0927			 mov	 dx, 0927h
+    255	    033B  66| A1 1396r			 mov	 eax, Table3._Size
+    256	    033F  E8 02F5			 Call	 PrintHex32
+    257					 ;	 call	 GotoXY
+    258					 ;	 lea	 esi, Table3.Velikost
+    259					 ;	 call	 PrtStr
+    260	    0342  BA 092E			 mov	 dx, 092Eh
+    261	    0345  E8 02A8			 call	 GotoXY
+    262	    0348  66| 8D 36 136Dr		 lea	 esi, Table3.System
+    263	    034D  E8 0239			 call	 PrtStr
+    264	    0350  BA 0938			 mov	 dx, 0938h
+    265	    0353  E8 029A			 call	 GotoXY
+    266	    0356  66| 8D 36 1375r		 lea	 esi, Table3.Disk
+    267	    035B  E8 022B			 call	 PrtStr
+    268	    035E  BA 093F			 mov	 dx, 093Fh
+    269	    0361  E8 028C			 call	 GotoXY
+    270	    0364  66| 8D 36 137Br		 lea	 esi, Table3.Poznamka
+    271	    0369  E8 021D			 call	 PrtStr
+    272
+    273	    036C  BA 0A03			 mov	 dx, 0A03h
+    274	    036F  E8 027E			 call	 GotoXY
+    275	    0372  66| 8D 36 139Cr		 lea	 esi, Table4.Jmeno
+    276	    0377  E8 020F			 call	 PrtStr
+    277	    037A  BA 0A10			 mov	 dx, 0A10h
+    278	    037D  E8 0270			 call	 GotoXY
+    279	    0380  66| 8D 36 13A8r		 lea	 esi, Table4.Popis
+    280	    0385  E8 0201			 call	 PrtStr
+    281	    0388  BA 0A27			 mov	 dx, 0A27h
+    282	    038B  66| A1 13EEr			 mov	 eax, Table4._Size
+    283	    038F  E8 02A5			 Call	 PrintHex32
+    284					 ;	 call	 GotoXY
+    285					 ;	 lea	 esi, Table4.Velikost
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 6
+bmanager.asm
+
+
+
+    286					 ;	 call	 PrtStr
+    287	    0392  BA 0A2E			 mov	 dx, 0A2Eh
+    288	    0395  E8 0258			 call	 GotoXY
+    289	    0398  66| 8D 36 13C5r		 lea	 esi, Table4.System
+    290	    039D  E8 01E9			 call	 PrtStr
+    291	    03A0  BA 0A38			 mov	 dx, 0A38h
+    292	    03A3  E8 024A			 call	 GotoXY
+    293	    03A6  66| 8D 36 13CDr		 lea	 esi, Table4.Disk
+    294	    03AB  E8 01DB			 call	 PrtStr
+    295	    03AE  BA 0A3F			 mov	 dx, 0A3Fh
+    296	    03B1  E8 023C			 call	 GotoXY
+    297	    03B4  66| 8D 36 13D3r		 lea	 esi, Table4.Poznamka
+    298	    03B9  E8 01CD			 call	 PrtStr
+    299
+    300	    03BC  BA 0B03			 mov	 dx, 0B03h
+    301	    03BF  E8 022E			 call	 GotoXY
+    302	    03C2  66| 8D 36 13F4r		 lea	 esi, Table5.Jmeno
+    303	    03C7  E8 01BF			 call	 PrtStr
+    304	    03CA  BA 0B10			 mov	 dx, 0B10h
+    305	    03CD  E8 0220			 call	 GotoXY
+    306	    03D0  66| 8D 36 1400r		 lea	 esi, Table5.Popis
+    307	    03D5  E8 01B1			 call	 PrtStr
+    308	    03D8  BA 0B27			 mov	 dx, 0B27h
+    309	    03DB  66| A1 1446r			 mov	 eax, Table5._Size
+    310	    03DF  E8 0255			 Call	 PrintHex32
+    311					 ;	 call	 GotoXY
+    312					 ;	 lea	 esi, Table5.Velikost
+    313					 ;	 call	 PrtStr
+    314	    03E2  BA 0B2E			 mov	 dx, 0B2Eh
+    315	    03E5  E8 0208			 call	 GotoXY
+    316	    03E8  66| 8D 36 141Dr		 lea	 esi, Table5.System
+    317	    03ED  E8 0199			 call	 PrtStr
+    318	    03F0  BA 0B38			 mov	 dx, 0B38h
+    319	    03F3  E8 01FA			 call	 GotoXY
+    320	    03F6  66| 8D 36 1425r		 lea	 esi, Table5.Disk
+    321	    03FB  E8 018B			 call	 PrtStr
+    322	    03FE  BA 0B3F			 mov	 dx, 0B3Fh
+    323	    0401  E8 01EC			 call	 GotoXY
+    324	    0404  66| 8D 36 142Br		 lea	 esi, Table5.Poznamka
+    325	    0409  E8 017D			 call	 PrtStr
+    326
+    327	    040C  BA 0C03			 mov	 dx, 0C03h
+    328	    040F  E8 01DE			 call	 GotoXY
+    329	    0412  66| 8D 36 144Cr		 lea	 esi, Table6.Jmeno
+    330	    0417  E8 016F			 call	 PrtStr
+    331	    041A  BA 0C10			 mov	 dx, 0C10h
+    332	    041D  E8 01D0			 call	 GotoXY
+    333	    0420  66| 8D 36 1458r		 lea	 esi, Table6.Popis
+    334	    0425  E8 0161			 call	 PrtStr
+    335	    0428  BA 0C27			 mov	 dx, 0C27h
+    336	    042B  66| A1 149Er			 mov	 eax, Table6._Size
+    337	    042F  E8 0205			 Call	 PrintHex32
+    338					 ;	 call	 GotoXY
+    339					 ;	 lea	 esi, Table6.Velikost
+    340					 ;	 call	 PrtStr
+    341	    0432  BA 0C2E			 mov	 dx, 0C2Eh
+    342	    0435  E8 01B8			 call	 GotoXY
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 7
+bmanager.asm
+
+
+
+    343	    0438  66| 8D 36 1475r		 lea	 esi, Table6.System
+    344	    043D  E8 0149			 call	 PrtStr
+    345	    0440  BA 0C38			 mov	 dx, 0C38h
+    346	    0443  E8 01AA			 call	 GotoXY
+    347	    0446  66| 8D 36 147Dr		 lea	 esi, Table6.Disk
+    348	    044B  E8 013B			 call	 PrtStr
+    349	    044E  BA 0C3F			 mov	 dx, 0C3Fh
+    350	    0451  E8 019C			 call	 GotoXY
+    351	    0454  66| 8D 36 1483r		 lea	 esi, Table6.Poznamka
+    352	    0459  E8 012D			 call	 PrtStr
+    353
+    354	    045C  BA 0D03			 mov	 dx, 0D03h
+    355	    045F  E8 018E			 call	 GotoXY
+    356	    0462  66| 8D 36 14A4r		 lea	 esi, Table7.Jmeno
+    357	    0467  E8 011F			 call	 PrtStr
+    358	    046A  BA 0D10			 mov	 dx, 0D10h
+    359	    046D  E8 0180			 call	 GotoXY
+    360	    0470  66| 8D 36 14B0r		 lea	 esi, Table7.Popis
+    361	    0475  E8 0111			 call	 PrtStr
+    362	    0478  BA 0D27			 mov	 dx, 0D27h
+    363	    047B  66| A1 14F6r			 mov	 eax, Table7._Size
+    364	    047F  E8 01B5			 Call	 PrintHex32
+    365					 ;	 call	 GotoXY
+    366					 ;	 lea	 esi, Table7.Velikost
+    367					 ;	 call	 PrtStr
+    368	    0482  BA 0D2E			 mov	 dx, 0D2Eh
+    369	    0485  E8 0168			 call	 GotoXY
+    370	    0488  66| 8D 36 14CDr		 lea	 esi, Table7.System
+    371	    048D  E8 00F9			 call	 PrtStr
+    372	    0490  BA 0D38			 mov	 dx, 0D38h
+    373	    0493  E8 015A			 call	 GotoXY
+    374	    0496  66| 8D 36 14D5r		 lea	 esi, Table7.Disk
+    375	    049B  E8 00EB			 call	 PrtStr
+    376	    049E  BA 0D3F			 mov	 dx, 0D3Fh
+    377	    04A1  E8 014C			 call	 GotoXY
+    378	    04A4  66| 8D 36 14DBr		 lea	 esi, Table7.Poznamka
+    379	    04A9  E8 00DD			 call	 PrtStr
+    380
+    381	    04AC  BA 0E03			 mov	 dx, 0E03h
+    382	    04AF  E8 013E			 call	 GotoXY
+    383	    04B2  66| 8D 36 14FCr		 lea	 esi, Table8.Jmeno
+    384	    04B7  E8 00CF			 call	 PrtStr
+    385	    04BA  BA 0E10			 mov	 dx, 0E10h
+    386	    04BD  E8 0130			 call	 GotoXY
+    387	    04C0  66| 8D 36 1508r		 lea	 esi, Table8.Popis
+    388	    04C5  E8 00C1			 call	 PrtStr
+    389	    04C8  BA 0E27			 mov	 dx, 0E27h
+    390	    04CB  66| A1 154Er			 mov	 eax, Table8._Size
+    391	    04CF  E8 0165			 Call	 PrintHex32
+    392					 ;	 call	 GotoXY
+    393					 ;	 lea	 esi, Table8.Velikost
+    394					 ;	 call	 PrtStr
+    395	    04D2  BA 0E2E			 mov	 dx, 0E2Eh
+    396	    04D5  E8 0118			 call	 GotoXY
+    397	    04D8  66| 8D 36 1525r		 lea	 esi, Table8.System
+    398	    04DD  E8 00A9			 call	 PrtStr
+    399	    04E0  BA 0E38			 mov	 dx, 0E38h
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 8
+bmanager.asm
+
+
+
+    400	    04E3  E8 010A			 call	 GotoXY
+    401	    04E6  66| 8D 36 152Dr		 lea	 esi, Table8.Disk
+    402	    04EB  E8 009B			 call	 PrtStr
+    403	    04EE  BA 0E3F			 mov	 dx, 0E3Fh
+    404	    04F1  E8 00FC			 call	 GotoXY
+    405	    04F4  66| 8D 36 1533r		 lea	 esi, Table8.Poznamka
+    406	    04F9  E8 008D			 call	 PrtStr
+    407
+    408	    04FC  BA 0F03			 mov	 dx, 0F03h
+    409	    04FF  E8 00EE			 call	 GotoXY
+    410	    0502  66| 8D 36 1554r		 lea	 esi, Table9.Jmeno
+    411	    0507  E8 007F			 call	 PrtStr
+    412	    050A  BA 0F10			 mov	 dx, 0F10h
+    413	    050D  E8 00E0			 call	 GotoXY
+    414	    0510  66| 8D 36 1560r		 lea	 esi, Table9.Popis
+    415	    0515  E8 0071			 call	 PrtStr
+    416	    0518  BA 0F27			 mov	 dx, 0F27h
+    417	    051B  66| A1 15A6r			 mov	 eax, Table9._Size
+    418	    051F  E8 0115			 Call	 PrintHex32
+    419					 ;	 call	 GotoXY
+    420					 ;	 lea	 esi, Table9.Velikost
+    421					 ;	 call	 PrtStr
+    422	    0522  BA 0F2E			 mov	 dx, 0F2Eh
+    423	    0525  E8 00C8			 call	 GotoXY
+    424	    0528  66| 8D 36 157Dr		 lea	 esi, Table9.System
+    425	    052D  E8 0059			 call	 PrtStr
+    426	    0530  BA 0F38			 mov	 dx, 0F38h
+    427	    0533  E8 00BA			 call	 GotoXY
+    428	    0536  66| 8D 36 1585r		 lea	 esi, Table9.Disk
+    429	    053B  E8 004B			 call	 PrtStr
+    430	    053E  BA 0F3F			 mov	 dx, 0F3Fh
+    431	    0541  E8 00AC			 call	 GotoXY
+    432	    0544  66| 8D 36 158Br		 lea	 esi, Table9.Poznamka
+    433	    0549  E8 003D			 call	 PrtStr
+    434
+    435	    054C  C3				 ret
+    436	    054D			 Print_Info	 endp
+    437
+    438
+    439					 include Func.asm
+1   440					 ;Tisk 2 hex ü°slic
+1   441					 ;DX=¨°slo
+1   442	    054D			 Print_Hex	 proc
+1   443	    054D  60				 pusha
+1   444	    054E  B9 0004			 mov	 cx, 4		 ; 8 hex digits
+1   445	    0551			 print_digit:
+1   446	    0551  C1 C2	04			 rol	 dx, 4		 ; rotate so that lowest 4 bits	are used
+1   447	    0554  B8 0E0F			 mov	 ax, 0e0fh	 ; ah =	request, al = mask for nybble
+1   448	    0557  22 C2				 and	 al, dl
+1   449	    0559  04 90				 add	 al, 090h	 ; convert al to ascii hex (four instructions)
+1   450	    055B  27				 daa
+1   451	    055C  14 40				 adc	 al, 040h
+1   452	    055E  27				 daa
+1   453	    055F  53				 push	 bx	 ;;;;;;;;;;;;;
+1   454	    0560  8A 1E	1005r			 mov	 bl,VideoAtribut ;;;;;;;;;;;;;
+1   455	    0564  CD 10				 int	 10h
+1   456	    0566  5B				 pop	 bx	 ;;;;;;;;;;;;;
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 9
+bmanager.asm
+
+
+
+1   457	    0567  E2 E8				 loop	 print_digit
+1   458	    0569  61				 popa
+1   459	    056A  C3				 ret
+1   460	    056B			 Print_Hex	 endp
+1   461
+1   462					 ;Tisk 2 hex ü°slic
+1   463					 ;DX=¨°slo
+1   464	    056B			 Print__Hex	 proc
+1   465	    056B  60				 pusha
+1   466	    056C  B9 0002			 mov	 cx, 2		 ; 8 hex digits
+1   467	    056F			 print__digit:
+1   468	    056F  C1 C2	04			 rol	 dx, 4		 ; rotate so that lowest 4 bits	are used
+1   469	    0572  B8 0E0F			 mov	 ax, 0e0fh	 ; ah =	request, al = mask for nybble
+1   470	    0575  22 C2				 and	 al, dl
+1   471	    0577  04 90				 add	 al, 090h	 ; convert al to ascii hex (four instructions)
+1   472	    0579  27				 daa
+1   473	    057A  14 40				 adc	 al, 040h
+1   474	    057C  27				 daa
+1   475	    057D  53				 push	 bx	 ;;;;;;;;;;;;;
+1   476	    057E  8A 1E	1005r			 mov	 bl,VideoAtribut ;;;;;;;;;;;;;
+1   477	    0582  CD 10				 int	 10h
+1   478	    0584  5B				 pop	 bx	 ;;;;;;;;;;;;;
+1   479	    0585  E2 E8				 loop	 print__digit
+1   480	    0587  61				 popa
+1   481	    0588  C3				 ret
+1   482	    0589			 Print__Hex	 endp
+1   483
+1   484					 ; Routine to print asciiz-string at DS:SI
+1   485	    0589			 PrtStr	 Proc
+1   486	    0589  60				 pusha
+1   487	    058A  AC			 PS_2:	 lodsb
+1   488	    058B  3C 00				 cmp	 al,00h
+1   489	    058D  74 07	90 90			 jz	 fin
+1   490	    0591  E8 0004			 call	 prtchr
+1   491	    0594  EB F4				 jmp	 PS_2
+1   492	    0596			 fin:
+1   493	    0596  61				 popa
+1   494	    0597  C3				 ret
+1   495	    0598			 PrtStr	 endp
+1   496
+1   497					 ; Part	of above routine, this one just	prints ascii al
+1   498	    0598			 prtchr	 proc
+1   499	    0598  60				 pusha
+1   500	    0599  8A 3E	1004r			 mov	 bh, VideoStranka
+1   501	    059D  B9 0001			 mov	 cx, 01h
+1   502	    05A0  B4 0E				 mov	 ah, 0eh
+1   503	    05A2  53				 push	 bx	 ;;;;;;;;;;;;;
+1   504	    05A3  8A 1E	1005r			 mov	 bl, VideoAtribut	 ;;;;;;;;;;;;;
+1   505	    05A7  CD 10				 int	 10h
+1   506	    05A9  5B				 pop	 bx	 ;;;;;;;;;;;;;
+1   507	    05AA  61				 popa
+1   508	    05AB  C3				 ret
+1   509	    05AC			 prtchr	 endp
+1   510
+1   511					 ;-------------------------
+1   512	    05AC			 FlushKbd	 proc
+1   513					 ; Flush the keyboard buffer
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 10
+bmanager.asm
+
+
+
+1   514					 ;-------------------------
+1   515	    05AC  66| 60			 pushad
+1   516	    05AE			 FlushKbd_:
+1   517	    05AE  B4 01				 mov	 ah,01
+1   518	    05B0  CD 16				 int	 16h
+1   519	    05B2  74 08	90 90			 jz	 empty
+1   520	    05B6  32 E4				 xor	 ah,ah
+1   521	    05B8  CD 16				 int	 16h
+1   522	    05BA  EB F2				 jmp	 FlushKbd_
+1   523	    05BC			 empty:
+1   524	    05BC  66| 61			 popad
+1   525	    05BE  C3				 ret
+1   526	    05BF			 FlushKbd	 endp
+1   527
+1   528					 ;---------------------------
+1   529					 ; Print decimal number	(AL).
+1   530					 ;---------------------------
+1   531
+1   532	    05BF  50			 prtdec: push	 ax
+1   533	    05C0  51				 push	 cx
+1   534	    05C1  32 E4				 xor	 ah,ah
+1   535	    05C3  B1 0A				 mov	 cl,0Ah
+1   536	    05C5  F6 F9				 idiv	 cl
+1   537	    05C7  3C 09				 cmp	 al,09h
+1   538	    05C9  76 08	90 90			 jbe	 lt100
+1   539	    05CD  E8 FFEF			 call	 prtdec
+1   540	    05D0  EB 06	90			 jmp	 skip10
+1   541	    05D3  04 30			 lt100:	 add	 al,30h
+1   542	    05D5  E8 FFC0			 call	 prtchr
+1   543	    05D8  8A C4			 skip10: mov	 al,ah
+1   544	    05DA  04 30				 add	 al,30h
+1   545	    05DC  E8 FFB9			 call	 prtchr
+1   546	    05DF  59				 pop	 cx
+1   547	    05E0  58				 pop	 ax
+1   548	    05E1  C3				 ret
+1   549
+1   550	    05E2			 WhereXY proc
+1   551	    05E2  50				 push	 ax
+1   552	    05E3  53				 push	 bx
+1   553	    05E4  B8 0300			 mov	 ax, 0300h
+1   554	    05E7  8A 3E	1004r			 mov	 bh, VideoStranka
+1   555	    05EB  CD 10				 int	 10h
+1   556	    05ED  5B				 pop	 bx
+1   557	    05EE  58				 pop	 ax
+1   558	    05EF  C3				 ret
+1   559					 ;DL=sloupec
+1   560					 ;DH=˝†dek
+1   561	    05F0			 WhereXY endp
+1   562
+1   563	    05F0			 GotoXY	 proc
+1   564					 ;DL=sloupec
+1   565					 ;DH=˝†dek
+1   566	    05F0  60				 pusha
+1   567	    05F1  B8 0200			 mov	 ax, 0200h
+1   568	    05F4  8A 3E	1004r			 mov	 bh, VideoStranka
+1   569	    05F8  CD 10				 int	 10h
+1   570	    05FA  61				 popa
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 11
+bmanager.asm
+
+
+
+1   571	    05FB  C3				 ret
+1   572	    05FC			 GotoXY	 endp
+1   573
+1   574	    05FC			 ClrScr	 proc
+1   575	    05FC  60				 pusha
+1   576	    05FD  BA 0000			 mov	 dx, 0000h
+1   577	    0600  E8 FFED			 call	 GotoXY
+1   578	    0603  8A 1E	1005r			 mov	 bl, VideoAtribut
+1   579	    0607  8A 3E	1004r			 mov	 bh, VideoStranka
+1   580	    060B  B0 20				 mov	 al, 32
+1   581	    060D  B9 1F40			 mov	 cx,8000
+1   582	    0610  B4 09				 mov	 ah, 09
+1   583	    0612  CD 10				 int	 10h
+1   584	    0614  61				 popa
+1   585	    0615  C3				 ret
+1   586	    0616			 ClrScr	 endp
+1   587
+1   588					 ;DS:SI=ukazatel na ˝etÿtec ukonüenÏ 00h
+1   589					 ;ES:DI=ukazatel na c°lovÏ ˝etÿtec
+1   590	    0616			 CopyString	 proc
+1   591	    0616			 LS_:
+1   592	    0616  AC				 LODSB
+1   593	    0617  AA				 STOSB
+1   594	    0618  3C 00				 cmp	 al, 00h
+1   595	    061A  74 04	90 90			 je	 LS_EX_
+1   596	    061E  EB F6				 jmp	 LS_
+1   597	    0620			 LS_EX_:
+1   598	    0620  C3				 ret
+1   599	    0621			 CopyString	 endp
+1   600
+1   601					 ;DS:SI=ukazatel na ˝etÿtec ukonüenÏ 00h
+1   602					 ;ES:DI=ukazatel na c°lovÏ ˝etÿtec
+1   603					 ;CX=ZnakÖ
+1   604	    0621			 CopyString2	 proc
+1   605	    0621			 LS_2:
+1   606	    0621  AC				 LODSB
+1   607	    0622  AA				 STOSB
+1   608	    0623  3C 00				 cmp	 al, 00h
+1   609	    0625  74 04	90 90			 je	 LS_EX_2
+1   610	    0629  E2 F6				 loop	 LS_2
+1   611	    062B			 LS_EX_2:
+1   612	    062B  C3				 ret
+1   613	    062C			 CopyString2	 endp
+1   614
+1   615	    062C			 SetSegments	 proc
+1   616	    062C  50				 push	 ax
+1   617	    062D  8C C8				 mov	 ax, cs
+1   618	    062F  8E D8				 mov	 ds, ax
+1   619	    0631  8E C0				 mov	 es, ax
+1   620	    0633  8E E0				 mov	 fs, ax
+1   621	    0635  58				 pop	 ax
+1   622	    0636  C3				 ret
+1   623	    0637			 SetSegments	 endp
+1   624
+1   625	    0637			 PrintHex32:
+1   626	    0637  60				 pusha
+1   627	    0638  66| 50			 push	 eax
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 12
+bmanager.asm
+
+
+
+1   628	    063A  8B DA				 mov	 bx, dx
+1   629	    063C  E8 FFB1			 call	 GotoXY
+1   630	    063F  5A				 pop	 dx
+1   631	    0640  E8 FF0A			 call	 Print_Hex
+1   632	    0643  FE CB				 dec	 bl
+1   633	    0645  FE CB				 dec	 bl
+1   634	    0647  FE CB				 dec	 bl
+1   635	    0649  FE CB				 dec	 bl
+1   636	    064B  8B D3				 mov	 dx, bx
+1   637	    064D  E8 FFA0			 call	 GotoXY
+1   638	    0650  5A				 pop	 dx
+1   639	    0651  E8 FEF9			 call	 Print_Hex
+1   640	    0654  61				 popa
+1   641	    0655  C3				 ret
+1   642
+1   643	    0656			 ReadKey proc
+1   644	    0656  33 C0				 xor	 ax, ax
+1   645	    0658  CD 16				 int	 16h
+1   646	    065A  C3				 ret
+1   647	    065B			 ReadKey endp
+1   648
+1   649	    065B			 KeybDev proc
+1   650	    065B  8A 36	098Fr			 mov	 dh, __Y
+1   651	    065F  8A 16	098Er			 mov	 dl, __X
+1   652	    0663  E8 FF8A			 Call	 GotoXY
+1   653	    0666  B0 3E				 mov	 al, ">"
+1   654	    0668  E8 FF2D			 Call	 PrtChr
+1   655	    066B  E8 0083			 Call	 Done_1
+1   656	    066E			 KD_1:
+1   657	    066E  E8 FFE5			 Call	 ReadKey
+1   658	    0671  3C 0D				 cmp	 al, 0dh
+1   659	    0673  74 41	90 90			 je	 KD_2
+1   660	    0677  3C 00				 cmp	 al, 00h
+1   661	    0679  75 F3				 jne	 KD_1
+1   662	    067B  80 FC	50			 cmp	 ah, 50h ;dolÖ
+1   663	    067E  74 13	90 90			 je	 KD_3
+1   664	    0682  80 FC	48			 cmp	 ah, 48h ;nahoru
+1   665	    0685  74 20	90 90			 je	 KD_4
+1   666	    0689  80 FC	0F			 cmp	 ah, 0Fh
+1   667	    068C  74 04	90 90			 je	 KD_Exit
+1   668	    0690  EB DC				 jmp	 KD_1
+1   669	    0692			 KD_Exit:
+1   670	    0692  C3				 ret
+1   671	    0693			 KD_3:
+1   672	    0693  A1 0993r			 mov	 ax, Part
+1   673	    0696  05 0006			 add	 ax, 6
+1   674	    0699  38 06	098Dr			 cmp	 _Y, al
+1   675	    069D  74 CF				 je	 KD_1
+1   676	    069F  80 06	098Dr 01		 add	 _Y, 1
+1   677	    06A4  EB 19	90			 jmp	 KD_5
+1   678	    06A7			 KD_4:
+1   679	    06A7  80 3E	098Dr 07		 cmp	 _Y, 7
+1   680	    06AC  74 C0				 je	 KD_1
+1   681	    06AE  80 2E	098Dr 01		 sub	 _Y, 1
+1   682	    06B3  EB 0A	90			 jmp	 KD_5
+1   683	    06B6			 KD_2:
+1   684	    06B6  80 2E	098Dr 06		 sub	 _Y, 6
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 13
+bmanager.asm
+
+
+
+1   685	    06BB  E9 01A2			 jmp	 Done_3
+1   686	    06BE  C3				 ret
+1   687	    06BF			 KD_5:
+1   688	    06BF  8A 36	098Fr			 mov	 dh, __Y
+1   689	    06C3  8A 16	098Er			 mov	 dl, __X
+1   690	    06C7  E8 FF26			 Call	 GotoXY
+1   691	    06CA  B0 20				 mov	 al, " "
+1   692	    06CC  E8 FEC9			 Call	 PrtChr
+1   693
+1   694	    06CF  8A 36	098Dr			 mov	 dh, _Y
+1   695	    06D3  8A 16	098Cr			 mov	 dl, _X
+1   696	    06D7  E8 FF16			 Call	 GotoXY
+1   697	    06DA  B0 3E				 mov	 al, ">"
+1   698	    06DC  E8 FEB9			 Call	 PrtChr
+1   699
+1   700	    06DF  A0 098Cr			 mov	 al, _X
+1   701	    06E2  A2 098Er			 mov	 __X, al
+1   702	    06E5  A0 098Dr			 mov	 al, _Y
+1   703	    06E8  A2 098Fr			 mov	 __Y, al
+1   704	    06EB  E8 0003			 Call	 Done_1
+1   705	    06EE  E9 FF7D			 jmp	 KD_1
+1   706	    06F1			 KeybDev endp
+1   707
+1   708	    06F1			 Done_1	 proc
+1   709	    06F1  80 2E	098Dr 06		 sub	 _Y, 6
+1   710	    06F6  80 3E	098Dr 01		 cmp	 _Y, 1
+1   711	    06FB  74 4A	90 90			 je	 A_1
+1   712	    06FF  80 3E	098Dr 02		 cmp	 _Y, 2
+1   713	    0704  74 57	90 90			 je	 A_2
+1   714	    0708  80 3E	098Dr 03		 cmp	 _Y, 3
+1   715	    070D  74 64	90 90			 je	 A_3
+1   716	    0711  80 3E	098Dr 04		 cmp	 _Y, 4
+1   717	    0716  74 71	90 90			 je	 A_4
+1   718	    071A  80 3E	098Dr 05		 cmp	 _Y, 5
+1   719	    071F  74 7E	90 90			 je	 A_5
+1   720	    0723  80 3E	098Dr 06		 cmp	 _Y, 6
+1   721	    0728  0F 84	0089			 je	 A_6
+1   722	    072C  80 3E	098Dr 07		 cmp	 _Y, 7
+1   723	    0731  74 56	90 90			 je	 A_4
+1   724	    0735  80 3E	098Dr 08		 cmp	 _Y, 8
+1   725	    073A  0F 84	00A3			 je	 A_8
+1   726	    073E  80 3E	098Dr 09		 cmp	 _Y, 9
+1   727	    0743  0F 84	00B0			 je	 A_9
+1   728	    0747			 A_1:
+1   729	    0747  8A 26	12EAr			 mov	 ah, Table1._Boot
+1   730	    074B  8A 16	12E4r			 mov	 dl, Table1._Disk
+1   731	    074F  8A 36	12E1r			 mov	 dh, Table1._Head
+1   732	    0753  8B 0E	12E2r			 mov	 cx, Table1._SecCyl
+1   733	    0757  A0 12E5r			 mov	 al, Table1._sys
+1   734	    075A  E9 00AD			 jmp	 Done_2
+1   735	    075D			 A_2:
+1   736	    075D  8A 26	1342r			 mov	 ah, Table2._Boot
+1   737	    0761  8A 16	133Cr			 mov	 dl, Table2._Disk
+1   738	    0765  8A 36	1339r			 mov	 dh, Table2._Head
+1   739	    0769  8B 0E	133Ar			 mov	 cx, Table2._SecCyl
+1   740	    076D  A0 133Dr			 mov	 al, Table2._sys
+1   741	    0770  E9 0097			 jmp	 Done_2
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 14
+bmanager.asm
+
+
+
+1   742	    0773			 A_3:
+1   743	    0773  8A 26	139Ar			 mov	 ah, Table3._Boot
+1   744	    0777  8A 16	1394r			 mov	 dl, Table3._Disk
+1   745	    077B  8A 36	1391r			 mov	 dh, Table3._Head
+1   746	    077F  8B 0E	1392r			 mov	 cx, Table3._SecCyl
+1   747	    0783  A0 1395r			 mov	 al, Table3._sys
+1   748	    0786  E9 0081			 jmp	 Done_2
+1   749	    0789			 A_4:
+1   750	    0789  8A 26	13F2r			 mov	 ah, Table4._Boot
+1   751	    078D  8A 16	13ECr			 mov	 dl, Table4._Disk
+1   752	    0791  8A 36	13E9r			 mov	 dh, Table4._Head
+1   753	    0795  8B 0E	13EAr			 mov	 cx, Table4._SecCyl
+1   754	    0799  A0 13EDr			 mov	 al, Table4._sys
+1   755	    079C  EB 6C	90			 jmp	 Done_2
+1   756	    079F			 A_5:
+1   757	    079F  8A 26	144Ar			 mov	 ah, Table5._Boot
+1   758	    07A3  8A 16	1444r			 mov	 dl, Table5._Disk
+1   759	    07A7  8A 36	1441r			 mov	 dh, Table5._Head
+1   760	    07AB  8B 0E	1442r			 mov	 cx, Table5._SecCyl
+1   761	    07AF  A0 1445r			 mov	 al, Table5._sys
+1   762	    07B2  EB 56	90			 jmp	 Done_2
+1   763	    07B5			 A_6:
+1   764	    07B5  8A 26	14A2r			 mov	 ah, Table6._Boot
+1   765	    07B9  8A 16	149Cr			 mov	 dl, Table6._Disk
+1   766	    07BD  8A 36	1499r			 mov	 dh, Table6._Head
+1   767	    07C1  8B 0E	149Ar			 mov	 cx, Table6._SecCyl
+1   768	    07C5  A0 149Dr			 mov	 al, Table6._sys
+1   769	    07C8  EB 40	90			 jmp	 Done_2
+1   770	    07CB			 A_7:
+1   771	    07CB  8A 26	14FAr			 mov	 ah, Table7._Boot
+1   772	    07CF  8A 16	14F4r			 mov	 dl, Table7._Disk
+1   773	    07D3  8A 36	14F1r			 mov	 dh, Table7._Head
+1   774	    07D7  8B 0E	14F2r			 mov	 cx, Table7._SecCyl
+1   775	    07DB  A0 14F5r			 mov	 al, Table7._sys
+1   776	    07DE  EB 2A	90			 jmp	 Done_2
+1   777	    07E1			 A_8:
+1   778	    07E1  8A 26	1552r			 mov	 ah, Table8._Boot
+1   779	    07E5  8A 16	154Cr			 mov	 dl, Table8._Disk
+1   780	    07E9  8A 36	1549r			 mov	 dh, Table8._Head
+1   781	    07ED  8B 0E	154Ar			 mov	 cx, Table8._SecCyl
+1   782	    07F1  A0 154Dr			 mov	 al, Table8._sys
+1   783	    07F4  EB 14	90			 jmp	 Done_2
+1   784	    07F7			 A_9:
+1   785	    07F7  8A 26	15AAr			 mov	 ah, Table9._Boot
+1   786	    07FB  8A 16	15A4r			 mov	 dl, Table9._Disk
+1   787	    07FF  8A 36	15A1r			 mov	 dh, Table9._Head
+1   788	    0803  8B 0E	15A2r			 mov	 cx, Table9._SecCyl
+1   789	    0807  A0 15A5r			 mov	 al, Table9._sys
+1   790	    080A			 Done_2:
+1   791	    080A  88 16	0986r			 mov	 _dl, dl
+1   792	    080E  88 36	0987r			 mov	 _dh, dh
+1   793	    0812  89 0E	0988r			 mov	 _cx, cx
+1   794	    0816  88 26	098Ar			 mov	 _b, ah
+1   795	    081A  A2 098Br			 mov	 __sys,	al
+1   796	    081D  B6 10				 mov	 dh, 16
+1   797	    081F  B2 03				 mov	 dl, 3
+1   798	    0821  E8 FDCC			 Call	 GotoXY
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 15
+bmanager.asm
+
+
+
+1   799	    0824  8A 36	0986r			 mov	 dh, _dl
+1   800	    0828  E8 FD40			 Call	 Print__Hex
+1   801	    082B  B0 2D				 mov	 al, "-"
+1   802	    082D  E8 FD68			 Call	 PrtChr
+1   803	    0830  8A 36	0987r			 mov	 dh, _dh
+1   804	    0834  E8 FD34			 Call	 Print__Hex
+1   805	    0837  B0 2D				 mov	 al, "-"
+1   806	    0839  E8 FD5C			 Call	 PrtChr
+1   807	    083C  8B 16	0988r			 mov	 dx, _cx
+1   808	    0840  E8 FD0A			 Call	 Print_Hex
+1   809	    0843  B0 2D				 mov	 al, "-"
+1   810	    0845  E8 FD50			 Call	 PrtChr
+1   811	    0848  A0 098Ar			 mov	 al, _b
+1   812	    084B  E8 FD4A			 Call	 PrtChr
+1   813	    084E  B0 2D				 mov	 al, "-"
+1   814	    0850  E8 FD45			 Call	 PrtChr
+1   815	    0853  8A 36	098Br			 mov	 dh, __sys
+1   816	    0857  E8 FD11			 Call	 Print__hex
+1   817	    085A  80 06	098Dr 06		 add	 _Y, 6
+1   818	    085F  C3				 ret
+1   819	    0860			 Done_1	 endp
+1   820
+1   821	    0860			 Done_3	 proc
+1   822	    0860  8A 16	0986r			 mov	 dl, _dl
+1   823	    0864  8A 36	0987r			 mov	 dh, _dh
+1   824	    0868  8B 0E	0988r			 mov	 cx, _cx
+1   825	    086C  BB 7C00			 mov	 bx, 07C00h
+1   826	    086F  33 C0				 xor	 ax, ax
+1   827	    0871  8E C0				 mov	 es, ax
+1   828	    0873  B8 0201			 mov	 ax, 0201h
+1   829	    0876  CD 13				 int	 13h
+1   830	    0878  8C C8				 mov	 ax, cs
+1   831	    087A  8E D8				 mov	 ds, ax
+1   832	    087C  72 10	90 90			 jc	 Done_Error
+1   833	    0880  B8 0003			 mov	 ax, 0003h
+1   834	    0883  CD 10				 int	 10h
+1   835
+1   836	    0885  8A 16	0986r		 mov	 dl, _dl
+1   837
+1   838					 ;	 mov	 ax, 07C00h
+1   839					 ;	 jmp	 es:ax
+1   840					 ;---
+1   841	    0889  EA			 db	 0EAh
+1   842	    088A  00			 db	 00h
+1   843	    088B  7C			 db	 7Ch
+1   844	    088C  00			 db	 00h
+1   845	    088D  00			 db	 00h
+1   846					 ;--- jmp	 0000:7C00
+1   847	    088E			 Done_3	 endp
+1   848
+1   849	    088E			 Done_Error	 proc
+1   850	    088E  80 06	098Dr 06		 add	 _Y, 6
+1   851	    0893  E9 FDD8			 jmp	 KD_1
+1   852	    0896			 Done_Error	 endp
+1   853
+1   854	    0896			 KeybDev_	 proc
+1   855	    0896  8A 36	098Fr			 mov	 dh, __Y
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 16
+bmanager.asm
+
+
+
+1   856	    089A  8A 16	098Er			 mov	 dl, __X
+1   857	    089E  E8 FD4F			 Call	 GotoXY
+1   858	    08A1  B0 3E				 mov	 al, ">"
+1   859	    08A3  E8 FCF2			 Call	 PrtChr
+1   860	    08A6  C6 06	0996r 80 90		 mov	 BF, 80h
+1   861	    08AC			 KD__1:
+1   862	    08AC  E8 FDA7			 Call	 ReadKey
+1   863	    08AF  3C 0D				 cmp	 al, 0dh
+1   864	    08B1  74 16	90 90			 je	 KD__2
+1   865	    08B5  3C 00				 cmp	 al, 00h
+1   866	    08B7  75 F3				 jne	 KD__1
+1   867	    08B9  80 FC	50			 cmp	 ah, 50h ;dolÖ
+1   868	    08BC  74 24	90 90			 je	 KD__3
+1   869	    08C0  80 FC	48			 cmp	 ah, 48h ;nahoru
+1   870	    08C3  74 33	90 90			 je	 KD__4
+1   871	    08C7  EB E3				 jmp	 KD__1
+1   872	    08C9			 KD__2:
+1   873	    08C9  C6 06	098Cr 01 90		 mov	 _X, 1
+1   874	    08CF  C6 06	098Dr 07 90		 mov	 _Y, 7
+1   875	    08D5  C6 06	098Er 01 90		 mov	 __X, 1
+1   876	    08DB  C6 06	098Fr 07 90		 mov	 __Y, 7
+1   877	    08E1  C3				 ret
+1   878	    08E2			 KD__3:
+1   879	    08E2  33 C0				 xor	 ax, ax
+1   880	    08E4  A0 0995r			 mov	 al, Disks
+1   881	    08E7  05 0006			 add	 ax, 6
+1   882	    08EA  38 06	098Dr			 cmp	 _Y, al
+1   883	    08EE  74 BC				 je	 KD__1
+1   884	    08F0  80 06	098Dr 01		 add	 _Y, 1
+1   885	    08F5  EB 0D	90			 jmp	 KD__5
+1   886	    08F8			 KD__4:
+1   887	    08F8  80 3E	098Dr 07		 cmp	 _Y, 7
+1   888	    08FD  74 AD				 je	 KD__1
+1   889	    08FF  80 2E	098Dr 01		 sub	 _Y, 1
+1   890	    0904			 KD__5:
+1   891	    0904  8A 36	098Fr			 mov	 dh, __Y
+1   892	    0908  8A 16	098Er			 mov	 dl, __X
+1   893	    090C  E8 FCE1			 Call	 GotoXY
+1   894	    090F  B0 20				 mov	 al, " "
+1   895	    0911  E8 FC84			 Call	 PrtChr
+1   896
+1   897	    0914  8A 36	098Dr			 mov	 dh, _Y
+1   898	    0918  8A 16	098Cr			 mov	 dl, _X
+1   899	    091C  E8 FCD1			 Call	 GotoXY
+1   900	    091F  B0 3E				 mov	 al, ">"
+1   901	    0921  E8 FC74			 Call	 PrtChr
+1   902
+1   903	    0924  A0 098Cr			 mov	 al, _X
+1   904	    0927  A2 098Er			 mov	 __X, al
+1   905	    092A  A0 098Dr			 mov	 al, _Y
+1   906	    092D  A2 098Fr			 mov	 __Y, al
+1   907	    0930  E8 0003			 Call	 Done__1
+1   908	    0933  E9 FF76			 jmp	 KD__1
+1   909	    0936			 KeybDev_	 endp
+1   910
+1   911	    0936			 Done__1	 proc
+1   912	    0936  80 2E	098Dr 06		 sub	 _Y, 6
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 17
+bmanager.asm
+
+
+
+1   913	    093B  80 3E	098Dr 01		 cmp	 _Y, 1
+1   914	    0940  74 1D	90 90			 je	 A__1
+1   915	    0944  80 3E	098Dr 02		 cmp	 _Y, 2
+1   916	    0949  74 1D	90 90			 je	 A__2
+1   917	    094D  80 3E	098Dr 03		 cmp	 _Y, 3
+1   918	    0952  74 1D	90 90			 je	 A__3
+1   919	    0956  80 3E	098Dr 04		 cmp	 _Y, 4
+1   920	    095B  74 1D	90 90			 je	 A__4
+1   921	    095F			 A__1:
+1   922	    095F  C6 06	0996r 80 90		 mov	 BF, 80h
+1   923	    0965  EB 19	90			 Jmp	 A___
+1   924	    0968			 A__2:
+1   925	    0968  C6 06	0996r 81 90		 mov	 BF, 81h
+1   926	    096E  EB 10	90			 Jmp	 A___
+1   927	    0971			 A__3:
+1   928	    0971  C6 06	0996r 82 90		 mov	 BF, 82h
+1   929	    0977  EB 07	90			 Jmp	 A___
+1   930	    097A			 A__4:
+1   931	    097A  C6 06	0996r 83 90		 mov	 BF, 83h
+1   932	    0980			 A___:
+1   933	    0980  80 06	098Dr 06		 add	 _Y, 6
+1   934	    0985  C3				 ret
+1   935	    0986			 Done__1	 endp
+1   936
+1   937
+1   938	    0986  ??			 _dl	 db	 ?
+1   939	    0987  ??			 _dh	 db	 ?
+1   940	    0988  ????			 _cx	 dw	 ?
+1   941	    098A  ??			 _b	 db	 ?
+1   942	    098B  ??			 __sys	 db	 ?
+1   943	    098C  01			 _X	 db	 1
+1   944	    098D  07			 _Y	 db	 7
+1   945	    098E  01			 __X	 db	 1
+1   946	    098F  07			 __Y	 db	 7
+1   947
+    948					 include Part.asm
+1   949	    0990  ??			 RMBRD	 db	 ?
+1   950	    0991  0000			 Level	 dw	 0
+1   951	    0993  0000			 Part	 dw	 0
+1   952	    0995  00			 Disks	 db	 0
+1   953	    0996  00			 BF	 db	 0
+1   954	    0997  08*(00)		 DiskTMP db	 8 dup(00)
+1   955
+1   956	    099F			 ReadMBR proc
+1   957					 ;dl<- disk
+1   958					 ;dh<-povrch
+1   959					 ;cx<-sekcyl
+1   960					 ;	 mov	 dh, 00h
+1   961					 ;	 mov	 cx, 0001h
+1   962	    099F  2E: 88 16 0990r		 mov	 cs:RMBRD, dl
+1   963	    09A4  BB 2E48r			 mov	 bx, offset cs:DiskData
+1   964	    09A7  8C C8				 mov	 ax, cs
+1   965	    09A9  8E C0				 mov	 es, ax
+1   966	    09AB  B8 0201			 mov	 ax, 0201h
+1   967	    09AE  CD 13				 int	 13h
+1   968	    09B0  8C C8				 mov	 ax, cs
+1   969	    09B2  8E D8				 mov	 ds, ax
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 18
+bmanager.asm
+
+
+
+1   970	    09B4  72 47	90 90			 jc	 DNenalezen
+1   971
+1   972	    09B8  EB 44	90			 jmp	 PartTable
+1   973	    09BB			 RMBR_I:
+1   974	    09BB  80 3E	0990r 80		 cmp	 RMBRD,	80h
+1   975	    09C0  74 32	90 90			 je	 RMBR_hdd0
+1   976	    09C4  80 3E	0990r 81		 cmp	 RMBRD,	81h
+1   977	    09C9  74 1F	90 90			 je	 RMBR_hdd1
+1   978	    09CD  80 3E	0990r 82		 cmp	 RMBRD,	82h
+1   979	    09D2  74 0C	90 90			 je	 RMBR_hdd2
+1   980	    09D6  BE 1017r			 lea	 si, hdd3
+1   981	    09D9  BF 0997r			 lea	 di, DiskTMP
+1   982	    09DC  E8 FC37			 Call	 CopyString
+1   983	    09DF  C3				 ret
+1   984	    09E0			 RMBR_hdd2:
+1   985	    09E0  BE 1012r			 lea	 si, hdd2
+1   986	    09E3  BF 0997r			 lea	 di, DiskTMP
+1   987	    09E6  E8 FC2D			 Call	 CopyString
+1   988	    09E9  C3				 ret
+1   989	    09EA			 RMBR_hdd1:
+1   990	    09EA  BE 100Dr			 lea	 si, hdd1
+1   991	    09ED  BF 0997r			 lea	 di, DiskTMP
+1   992	    09F0  E8 FC23			 Call	 CopyString
+1   993	    09F3  C3				 ret
+1   994	    09F4			 RMBR_hdd0:
+1   995	    09F4  BE 1008r			 lea	 si, hdd0
+1   996	    09F7  BF 0997r			 lea	 di, DiskTMP
+1   997	    09FA  E8 FC19			 Call	 CopyString
+1   998	    09FD			 DNenalezen:
+1   999	    09FD  C3				 ret
+1  1000	    09FE			 ReadMBR endp
+1  1001
+1  1002	    09FE			 PartTable	 proc
+1  1003	    09FE  2E: 81 3E 3046r AA55		 cmp	 word ptr cs:[DiskData+01FEh], 0AA55h
+1  1004	    0A05  75 1A	90 90			 jne	 PartTableExit
+1  1005	    0A09  BB 01BE			 mov	 bx, 01BEh
+1  1006	    0A0C  E8 0013			 Call	 CheckRec
+1  1007	    0A0F  BB 01CE			 mov	 bx, 01CEh
+1  1008	    0A12  E8 000D			 Call	 CheckRec
+1  1009	    0A15  BB 01DE			 mov	 bx, 01DEh
+1  1010	    0A18  E8 0007			 Call	 CheckRec
+1  1011	    0A1B  BB 01EE			 mov	 bx, 01EEh
+1  1012	    0A1E  E8 0001			 Call	 CheckRec
+1  1013	    0A21			 PartTableExit:
+1  1014	    0A21  C3				 ret
+1  1015	    0A22			 PartTable	 endp
+1  1016
+1  1017	    0A22			 CheckRec	 proc
+1  1018	    0A22  2E: 80 BF 2E4Cr 00		 cmp	 byte ptr cs:[DiskData+bx+4], 00h
+1  1019	    0A28  0F 84	0491			 je	 CheckRecExit
+1  1020	    0A2C  2E: 80 BF 2E4Cr 05		 cmp	 byte ptr cs:[DiskData+bx+4], 05h
+1  1021	    0A32  0F 84	0488			 je	 CheckExtPart
+1  1022	    0A36  FE 06	1006r			 inc	 RecordNum
+1  1023	    0A3A  80 3E	1006r 01		 cmp	 RecordNum, 1
+1  1024	    0A3F  74 4B	90 90			 je	 CRR1
+1  1025	    0A43  80 3E	1006r 02		 cmp	 RecordNum, 2
+1  1026	    0A48  0F 84	00BA			 je	 CRR2
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 19
+bmanager.asm
+
+
+
+1  1027	    0A4C  80 3E	1006r 03		 cmp	 RecordNum, 3
+1  1028	    0A51  0F 84	0128			 je	 CRR3
+1  1029	    0A55  80 3E	1006r 04		 cmp	 RecordNum, 4
+1  1030	    0A5A  0F 84	0196			 je	 CRR4
+1  1031	    0A5E  80 3E	1006r 05		 cmp	 RecordNum, 5
+1  1032	    0A63  0F 84	0204			 je	 CRR5
+1  1033	    0A67  80 3E	1006r 06		 cmp	 RecordNum, 6
+1  1034	    0A6C  0F 84	0272			 je	 CRR6
+1  1035	    0A70  80 3E	1006r 07		 cmp	 RecordNum, 7
+1  1036	    0A75  0F 84	02E0			 je	 CRR7
+1  1037	    0A79  80 3E	1006r 08		 cmp	 RecordNum, 8
+1  1038	    0A7E  0F 84	034E			 je	 CRR8
+1  1039	    0A82  80 3E	1006r 09		 cmp	 RecordNum, 9
+1  1040	    0A87  0F 84	03BC			 je	 CRR9
+1  1041	    0A8B  C3				 ret
+1  1042	    0A8C			 CRR1:
+1  1043	    0A8C  2E: 8A 87 2E48r		 mov	 al, byte ptr cs:[DiskData+bx+0]
+1  1044	    0A91  A2 12EAr			 mov	 Table1._Boot, al
+1  1045	    0A94  66| 2E: 8B 87	2E54r		 mov	 eax, dword ptr	cs:[DiskData+bx+0Ch]
+1  1046					 ;	 imul	 eax, 512
+1  1047	    0A9A  66| A3 12E6r			 mov	 Table1._Size, eax
+1  1048	    0A9E  2E: 8A 87 2E4Cr		 mov	 al, byte ptr cs:[DiskData+bx+4]
+1  1049	    0AA3  A2 12E5r			 mov	 Table1._Sys, al
+1  1050	    0AA6  2E: 8A B7 2E49r		 mov	 dh, byte ptr cs:[DiskData+bx+1]
+1  1051	    0AAB  88 36	12E1r			 mov	 Table1._Head, dh
+1  1052	    0AAF  2E: 8B 8F 2E4Ar		 mov	 cx, word ptr cs:[DiskData+bx+2]
+1  1053	    0AB4  89 0E	12E2r			 mov	 Table1._SecCyl, cx
+1  1054	    0AB8  E8 0415			 call	 SaveTMPSys
+1  1055	    0ABB  BE 101Cr			 lea	 si, SysTMP
+1  1056	    0ABE  BF 12BDr			 lea	 di, Table1.System
+1  1057	    0AC1  B9 0006			 mov	 cx, 06
+1  1058	    0AC4  E8 FB5A			 Call	 CopyString2
+1  1059	    0AC7  E8 0439			 call	 SaveTMPName
+1  1060	    0ACA  BE 102Br			 lea	 si, NameTMP
+1  1061	    0ACD  BF 1294r			 lea	 di, Table1.Jmeno
+1  1062	    0AD0  B9 000B			 mov	 cx, 0Bh
+1  1063	    0AD3  E8 FB4B			 Call	 CopyString2
+1  1064	    0AD6  8A 16	0990r			 mov	 dl, RMBRD
+1  1065	    0ADA  88 16	12E4r			 mov	 Table1._Disk, dl
+1  1066
+1  1067	    0ADE  E8 0451			 call	 SaveLevelStatus
+1  1068	    0AE1  BE 1049r			 lea	 si, LevStat
+1  1069	    0AE4  BF 12A0r			 lea	 di, Table1.Popis
+1  1070	    0AE7  B9 000E			 mov	 cx, 14
+1  1071	    0AEA  E8 FB34			 Call	 CopyString2
+1  1072
+1  1073	    0AED  BE 103Fr			 lea	 si, PoznTMP
+1  1074	    0AF0  BF 12CBr			 lea	 di, Table1.Poznamka
+1  1075	    0AF3  B9 0008			 mov	 cx, 08h
+1  1076	    0AF6  E8 FB28			 Call	 CopyString2
+1  1077
+1  1078	    0AF9  E8 FEBF			 call	 RMBR_I
+1  1079	    0AFC  BE 0997r			 lea	 si, DiskTMP
+1  1080	    0AFF  BF 12C5r			 lea	 di, Table1.Disk
+1  1081	    0B02  E8 FB11			 Call	 CopyString
+1  1082	    0B05  C3				 ret
+1  1083	    0B06			 CRR2:
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 20
+bmanager.asm
+
+
+
+1  1084	    0B06  2E: 8A 87 2E48r		 mov	 al, byte ptr cs:[DiskData+bx+0]
+1  1085	    0B0B  A2 1342r			 mov	 Table2._Boot, al
+1  1086	    0B0E  66| 2E: 8B 87	2E54r		 mov	 eax, dword ptr	cs:[DiskData+bx+0Ch]
+1  1087					 ;	 imul	 eax, 512
+1  1088	    0B14  66| A3 133Er			 mov	 Table2._Size, eax
+1  1089	    0B18  2E: 8A 87 2E4Cr		 mov	 al, byte ptr cs:[DiskData+bx+4]
+1  1090	    0B1D  A2 133Dr			 mov	 Table2._Sys, al
+1  1091	    0B20  2E: 8A B7 2E49r		 mov	 dh, byte ptr cs:[DiskData+bx+1]
+1  1092	    0B25  88 36	1339r			 mov	 Table2._Head, dh
+1  1093	    0B29  2E: 8B 8F 2E4Ar		 mov	 cx, word ptr cs:[DiskData+bx+2]
+1  1094	    0B2E  89 0E	133Ar			 mov	 Table2._SecCyl, cx
+1  1095	    0B32  E8 039B			 call	 SaveTMPSys
+1  1096	    0B35  BE 101Cr			 lea	 si, SysTMP
+1  1097	    0B38  BF 1315r			 lea	 di, Table2.System
+1  1098	    0B3B  E8 FAD8			 Call	 CopyString
+1  1099	    0B3E  E8 03C2			 call	 SaveTMPName
+1  1100	    0B41  BE 102Br			 lea	 si, NameTMP
+1  1101	    0B44  BF 12ECr			 lea	 di, Table2.Jmeno
+1  1102	    0B47  B9 000B			 mov	 cx, 0Bh
+1  1103	    0B4A  E8 FAD4			 Call	 CopyString2
+1  1104	    0B4D  8A 16	0990r			 mov	 dl, RMBRD
+1  1105	    0B51  88 16	133Cr			 mov	 Table2._Disk, dl
+1  1106
+1  1107	    0B55  E8 03DA			 call	 SaveLevelStatus
+1  1108	    0B58  BE 1049r			 lea	 si, LevStat
+1  1109	    0B5B  BF 12F8r			 lea	 di, Table2.Popis
+1  1110	    0B5E  B9 000E			 mov	 cx, 14
+1  1111	    0B61  E8 FABD			 Call	 CopyString2
+1  1112
+1  1113	    0B64  BE 103Fr			 lea	 si, PoznTMP
+1  1114	    0B67  BF 1323r			 lea	 di, Table2.Poznamka
+1  1115	    0B6A  B9 0008			 mov	 cx, 08h
+1  1116	    0B6D  E8 FAB1			 Call	 CopyString2
+1  1117
+1  1118	    0B70  E8 FE48			 call	 RMBR_I
+1  1119	    0B73  BE 0997r			 lea	 si, DiskTMP
+1  1120	    0B76  BF 131Dr			 lea	 di, Table2.Disk
+1  1121	    0B79  E8 FA9A			 Call	 CopyString
+1  1122	    0B7C  C3				 ret
+1  1123	    0B7D			 CRR3:
+1  1124	    0B7D  2E: 8A 87 2E48r		 mov	 al, byte ptr cs:[DiskData+bx+0]
+1  1125	    0B82  A2 139Ar			 mov	 Table3._Boot, al
+1  1126	    0B85  66| 2E: 8B 87	2E54r		 mov	 eax, dword ptr	cs:[DiskData+bx+0Ch]
+1  1127					 ;	 imul	 eax, 512
+1  1128	    0B8B  66| A3 1396r			 mov	 Table3._Size, eax
+1  1129	    0B8F  2E: 8A 87 2E4Cr		 mov	 al, byte ptr cs:[DiskData+bx+4]
+1  1130	    0B94  A2 1395r			 mov	 Table3._Sys, al
+1  1131	    0B97  2E: 8A B7 2E49r		 mov	 dh, byte ptr cs:[DiskData+bx+1]
+1  1132	    0B9C  88 36	1391r			 mov	 Table3._Head, dh
+1  1133	    0BA0  2E: 8B 8F 2E4Ar		 mov	 cx, word ptr cs:[DiskData+bx+2]
+1  1134	    0BA5  89 0E	1392r			 mov	 Table3._SecCyl, cx
+1  1135	    0BA9  E8 0324			 call	 SaveTMPSys
+1  1136	    0BAC  BE 101Cr			 lea	 si, SysTMP
+1  1137	    0BAF  BF 136Dr			 lea	 di, Table3.System
+1  1138	    0BB2  E8 FA61			 Call	 CopyString
+1  1139	    0BB5  E8 034B			 call	 SaveTMPName
+1  1140	    0BB8  BE 102Br			 lea	 si, NameTMP
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 21
+bmanager.asm
+
+
+
+1  1141	    0BBB  BF 1344r			 lea	 di, Table3.Jmeno
+1  1142	    0BBE  B9 000B			 mov	 cx, 0Bh
+1  1143	    0BC1  E8 FA5D			 Call	 CopyString2
+1  1144	    0BC4  8A 16	0990r			 mov	 dl, RMBRD
+1  1145	    0BC8  88 16	1394r			 mov	 Table3._Disk, dl
+1  1146
+1  1147	    0BCC  E8 0363			 call	 SaveLevelStatus
+1  1148	    0BCF  BE 1049r			 lea	 si, LevStat
+1  1149	    0BD2  BF 1350r			 lea	 di, Table3.Popis
+1  1150	    0BD5  B9 000E			 mov	 cx, 14
+1  1151	    0BD8  E8 FA46			 Call	 CopyString2
+1  1152
+1  1153	    0BDB  BE 103Fr			 lea	 si, PoznTMP
+1  1154	    0BDE  BF 137Br			 lea	 di, Table3.Poznamka
+1  1155	    0BE1  B9 0008			 mov	 cx, 08h
+1  1156	    0BE4  E8 FA3A			 Call	 CopyString2
+1  1157
+1  1158	    0BE7  E8 FDD1			 call	 RMBR_I
+1  1159	    0BEA  BE 0997r			 lea	 si, DiskTMP
+1  1160	    0BED  BF 1375r			 lea	 di, Table3.Disk
+1  1161	    0BF0  E8 FA23			 Call	 CopyString
+1  1162	    0BF3  C3				 ret
+1  1163	    0BF4			 CRR4:
+1  1164	    0BF4  2E: 8A 87 2E48r		 mov	 al, byte ptr cs:[DiskData+bx+0]
+1  1165	    0BF9  A2 13F2r			 mov	 Table4._Boot, al
+1  1166	    0BFC  66| 2E: 8B 87	2E54r		 mov	 eax, dword ptr	cs:[DiskData+bx+0Ch]
+1  1167					 ;	 imul	 eax, 512
+1  1168	    0C02  66| A3 13EEr			 mov	 Table4._Size, eax
+1  1169	    0C06  2E: 8A 87 2E4Cr		 mov	 al, byte ptr cs:[DiskData+bx+4]
+1  1170	    0C0B  A2 13EDr			 mov	 Table4._Sys, al
+1  1171	    0C0E  2E: 8A B7 2E49r		 mov	 dh, byte ptr cs:[DiskData+bx+1]
+1  1172	    0C13  88 36	13E9r			 mov	 Table4._Head, dh
+1  1173	    0C17  2E: 8B 8F 2E4Ar		 mov	 cx, word ptr cs:[DiskData+bx+2]
+1  1174	    0C1C  89 0E	13EAr			 mov	 Table4._SecCyl, cx
+1  1175	    0C20  E8 02AD			 call	 SaveTMPSys
+1  1176	    0C23  BE 101Cr			 lea	 si, SysTMP
+1  1177	    0C26  BF 13C5r			 lea	 di, Table4.System
+1  1178	    0C29  E8 F9EA			 Call	 CopyString
+1  1179	    0C2C  E8 02D4			 call	 SaveTMPName
+1  1180	    0C2F  BE 102Br			 lea	 si, NameTMP
+1  1181	    0C32  BF 139Cr			 lea	 di, Table4.Jmeno
+1  1182	    0C35  B9 000B			 mov	 cx, 0Bh
+1  1183	    0C38  E8 F9E6			 Call	 CopyString2
+1  1184	    0C3B  8A 16	0990r			 mov	 dl, RMBRD
+1  1185	    0C3F  88 16	13ECr			 mov	 Table4._Disk, dl
+1  1186
+1  1187	    0C43  E8 02EC			 call	 SaveLevelStatus
+1  1188	    0C46  BE 1049r			 lea	 si, LevStat
+1  1189	    0C49  BF 13A8r			 lea	 di, Table4.Popis
+1  1190	    0C4C  B9 000E			 mov	 cx, 14
+1  1191	    0C4F  E8 F9CF			 Call	 CopyString2
+1  1192
+1  1193	    0C52  BE 103Fr			 lea	 si, PoznTMP
+1  1194	    0C55  BF 13D3r			 lea	 di, Table4.Poznamka
+1  1195	    0C58  B9 0008			 mov	 cx, 08h
+1  1196	    0C5B  E8 F9C3			 Call	 CopyString2
+1  1197
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 22
+bmanager.asm
+
+
+
+1  1198	    0C5E  E8 FD5A			 call	 RMBR_I
+1  1199	    0C61  BE 0997r			 lea	 si, DiskTMP
+1  1200	    0C64  BF 13CDr			 lea	 di, Table4.Disk
+1  1201	    0C67  E8 F9AC			 Call	 CopyString
+1  1202	    0C6A  C3				 ret
+1  1203	    0C6B			 CRR5:
+1  1204	    0C6B  2E: 8A 87 2E48r		 mov	 al, byte ptr cs:[DiskData+bx+0]
+1  1205	    0C70  A2 144Ar			 mov	 Table5._Boot, al
+1  1206	    0C73  66| 2E: 8B 87	2E54r		 mov	 eax, dword ptr	cs:[DiskData+bx+0Ch]
+1  1207					 ;	 imul	 eax, 512
+1  1208	    0C79  66| A3 1446r			 mov	 Table5._Size, eax
+1  1209	    0C7D  2E: 8A 87 2E4Cr		 mov	 al, byte ptr cs:[DiskData+bx+4]
+1  1210	    0C82  A2 1445r			 mov	 Table5._Sys, al
+1  1211	    0C85  2E: 8A B7 2E49r		 mov	 dh, byte ptr cs:[DiskData+bx+1]
+1  1212	    0C8A  88 36	1441r			 mov	 Table5._Head, dh
+1  1213	    0C8E  2E: 8B 8F 2E4Ar		 mov	 cx, word ptr cs:[DiskData+bx+2]
+1  1214	    0C93  89 0E	1442r			 mov	 Table5._SecCyl, cx
+1  1215	    0C97  E8 0236			 call	 SaveTMPSys
+1  1216	    0C9A  BE 101Cr			 lea	 si, SysTMP
+1  1217	    0C9D  BF 141Dr			 lea	 di, Table5.System
+1  1218	    0CA0  E8 F973			 Call	 CopyString
+1  1219	    0CA3  E8 025D			 call	 SaveTMPName
+1  1220	    0CA6  BE 102Br			 lea	 si, NameTMP
+1  1221	    0CA9  BF 13F4r			 lea	 di, Table5.Jmeno
+1  1222	    0CAC  B9 000B			 mov	 cx, 0Bh
+1  1223	    0CAF  E8 F96F			 Call	 CopyString2
+1  1224	    0CB2  8A 16	0990r			 mov	 dl, RMBRD
+1  1225	    0CB6  88 16	1444r			 mov	 Table5._Disk, dl
+1  1226
+1  1227	    0CBA  E8 0275			 call	 SaveLevelStatus
+1  1228	    0CBD  BE 1049r			 lea	 si, LevStat
+1  1229	    0CC0  BF 1400r			 lea	 di, Table5.Popis
+1  1230	    0CC3  B9 000E			 mov	 cx, 14
+1  1231	    0CC6  E8 F958			 Call	 CopyString2
+1  1232
+1  1233	    0CC9  BE 103Fr			 lea	 si, PoznTMP
+1  1234	    0CCC  BF 142Br			 lea	 di, Table5.Poznamka
+1  1235	    0CCF  B9 0008			 mov	 cx, 08h
+1  1236	    0CD2  E8 F94C			 Call	 CopyString2
+1  1237
+1  1238	    0CD5  E8 FCE3			 call	 RMBR_I
+1  1239	    0CD8  BE 0997r			 lea	 si, DiskTMP
+1  1240	    0CDB  BF 1425r			 lea	 di, Table5.Disk
+1  1241	    0CDE  E8 F935			 Call	 CopyString
+1  1242	    0CE1  C3				 ret
+1  1243	    0CE2			 CRR6:
+1  1244	    0CE2  2E: 8A 87 2E48r		 mov	 al, byte ptr cs:[DiskData+bx+0]
+1  1245	    0CE7  A2 14A2r			 mov	 Table6._Boot, al
+1  1246	    0CEA  66| 2E: 8B 87	2E54r		 mov	 eax, dword ptr	cs:[DiskData+bx+0Ch]
+1  1247					 ;	 imul	 eax, 512
+1  1248	    0CF0  66| A3 149Er			 mov	 Table6._Size, eax
+1  1249	    0CF4  2E: 8A 87 2E4Cr		 mov	 al, byte ptr cs:[DiskData+bx+4]
+1  1250	    0CF9  A2 149Dr			 mov	 Table6._Sys, al
+1  1251	    0CFC  2E: 8A B7 2E49r		 mov	 dh, byte ptr cs:[DiskData+bx+1]
+1  1252	    0D01  88 36	1499r			 mov	 Table6._Head, dh
+1  1253	    0D05  2E: 8B 8F 2E4Ar		 mov	 cx, word ptr cs:[DiskData+bx+2]
+1  1254	    0D0A  89 0E	149Ar			 mov	 Table6._SecCyl, cx
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 23
+bmanager.asm
+
+
+
+1  1255	    0D0E  E8 01BF			 call	 SaveTMPSys
+1  1256	    0D11  BE 101Cr			 lea	 si, SysTMP
+1  1257	    0D14  BF 1475r			 lea	 di, Table6.System
+1  1258	    0D17  E8 F8FC			 Call	 CopyString
+1  1259	    0D1A  E8 01E6			 call	 SaveTMPName
+1  1260	    0D1D  BE 102Br			 lea	 si, NameTMP
+1  1261	    0D20  BF 144Cr			 lea	 di, Table6.Jmeno
+1  1262	    0D23  B9 000B			 mov	 cx, 0Bh
+1  1263	    0D26  E8 F8F8			 Call	 CopyString2
+1  1264	    0D29  8A 16	0990r			 mov	 dl, RMBRD
+1  1265	    0D2D  88 16	149Cr			 mov	 Table6._Disk, dl
+1  1266
+1  1267	    0D31  E8 01FE			 call	 SaveLevelStatus
+1  1268	    0D34  BE 1049r			 lea	 si, LevStat
+1  1269	    0D37  BF 1458r			 lea	 di, Table6.Popis
+1  1270	    0D3A  B9 000E			 mov	 cx, 14
+1  1271	    0D3D  E8 F8E1			 Call	 CopyString2
+1  1272
+1  1273	    0D40  BE 103Fr			 lea	 si, PoznTMP
+1  1274	    0D43  BF 1483r			 lea	 di, Table6.Poznamka
+1  1275	    0D46  B9 0008			 mov	 cx, 08h
+1  1276	    0D49  E8 F8D5			 Call	 CopyString2
+1  1277
+1  1278	    0D4C  E8 FC6C			 call	 RMBR_I
+1  1279	    0D4F  BE 0997r			 lea	 si, DiskTMP
+1  1280	    0D52  BF 147Dr			 lea	 di, Table6.Disk
+1  1281	    0D55  E8 F8BE			 Call	 CopyString
+1  1282	    0D58  C3				 ret
+1  1283	    0D59			 CRR7:
+1  1284	    0D59  2E: 8A 87 2E48r		 mov	 al, byte ptr cs:[DiskData+bx+0]
+1  1285	    0D5E  A2 14FAr			 mov	 Table7._Boot, al
+1  1286	    0D61  66| 2E: 8B 87	2E54r		 mov	 eax, dword ptr	cs:[DiskData+bx+0Ch]
+1  1287					 ;	 imul	 eax, 512
+1  1288	    0D67  66| A3 14F6r			 mov	 Table7._Size, eax
+1  1289	    0D6B  2E: 8A 87 2E4Cr		 mov	 al, byte ptr cs:[DiskData+bx+4]
+1  1290	    0D70  A2 14F5r			 mov	 Table7._Sys, al
+1  1291	    0D73  2E: 8A B7 2E49r		 mov	 dh, byte ptr cs:[DiskData+bx+1]
+1  1292	    0D78  88 36	14F1r			 mov	 Table7._Head, dh
+1  1293	    0D7C  2E: 8B 8F 2E4Ar		 mov	 cx, word ptr cs:[DiskData+bx+2]
+1  1294	    0D81  89 0E	14F2r			 mov	 Table7._SecCyl, cx
+1  1295	    0D85  E8 0148			 call	 SaveTMPSys
+1  1296	    0D88  BE 101Cr			 lea	 si, SysTMP
+1  1297	    0D8B  BF 14CDr			 lea	 di, Table7.System
+1  1298	    0D8E  E8 F885			 Call	 CopyString
+1  1299	    0D91  E8 016F			 call	 SaveTMPName
+1  1300	    0D94  BE 102Br			 lea	 si, NameTMP
+1  1301	    0D97  BF 14A4r			 lea	 di, Table7.Jmeno
+1  1302	    0D9A  B9 000B			 mov	 cx, 0Bh
+1  1303	    0D9D  E8 F881			 Call	 CopyString2
+1  1304	    0DA0  8A 16	0990r			 mov	 dl, RMBRD
+1  1305	    0DA4  88 16	14F4r			 mov	 Table7._Disk, dl
+1  1306
+1  1307	    0DA8  E8 0187			 call	 SaveLevelStatus
+1  1308	    0DAB  BE 1049r			 lea	 si, LevStat
+1  1309	    0DAE  BF 14B0r			 lea	 di, Table7.Popis
+1  1310	    0DB1  B9 000E			 mov	 cx, 14
+1  1311	    0DB4  E8 F86A			 Call	 CopyString2
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 24
+bmanager.asm
+
+
+
+1  1312
+1  1313	    0DB7  BE 103Fr			 lea	 si, PoznTMP
+1  1314	    0DBA  BF 14DBr			 lea	 di, Table7.Poznamka
+1  1315	    0DBD  B9 0008			 mov	 cx, 08h
+1  1316	    0DC0  E8 F85E			 Call	 CopyString2
+1  1317
+1  1318	    0DC3  E8 FBF5			 call	 RMBR_I
+1  1319	    0DC6  BE 0997r			 lea	 si, DiskTMP
+1  1320	    0DC9  BF 14D5r			 lea	 di, Table7.Disk
+1  1321	    0DCC  E8 F847			 Call	 CopyString
+1  1322	    0DCF  C3				 ret
+1  1323	    0DD0			 CRR8:
+1  1324	    0DD0  2E: 8A 87 2E48r		 mov	 al, byte ptr cs:[DiskData+bx+0]
+1  1325	    0DD5  A2 1552r			 mov	 Table8._Boot, al
+1  1326	    0DD8  66| 2E: 8B 87	2E54r		 mov	 eax, dword ptr	cs:[DiskData+bx+0Ch]
+1  1327					 ;	 imul	 eax, 512
+1  1328	    0DDE  66| A3 154Er			 mov	 Table8._Size, eax
+1  1329	    0DE2  2E: 8A 87 2E4Cr		 mov	 al, byte ptr cs:[DiskData+bx+4]
+1  1330	    0DE7  A2 154Dr			 mov	 Table8._Sys, al
+1  1331	    0DEA  2E: 8A B7 2E49r		 mov	 dh, byte ptr cs:[DiskData+bx+1]
+1  1332	    0DEF  88 36	1549r			 mov	 Table8._Head, dh
+1  1333	    0DF3  2E: 8B 8F 2E4Ar		 mov	 cx, word ptr cs:[DiskData+bx+2]
+1  1334	    0DF8  89 0E	154Ar			 mov	 Table8._SecCyl, cx
+1  1335	    0DFC  E8 00D1			 call	 SaveTMPSys
+1  1336	    0DFF  BE 101Cr			 lea	 si, SysTMP
+1  1337	    0E02  BF 1525r			 lea	 di, Table8.System
+1  1338	    0E05  E8 F80E			 Call	 CopyString
+1  1339	    0E08  E8 00F8			 call	 SaveTMPName
+1  1340	    0E0B  BE 102Br			 lea	 si, NameTMP
+1  1341	    0E0E  BF 14FCr			 lea	 di, Table8.Jmeno
+1  1342	    0E11  B9 000B			 mov	 cx, 0Bh
+1  1343	    0E14  E8 F80A			 Call	 CopyString2
+1  1344	    0E17  8A 16	0990r			 mov	 dl, RMBRD
+1  1345	    0E1B  88 16	154Cr			 mov	 Table8._Disk, dl
+1  1346
+1  1347	    0E1F  E8 0110			 call	 SaveLevelStatus
+1  1348	    0E22  BE 1049r			 lea	 si, LevStat
+1  1349	    0E25  BF 1508r			 lea	 di, Table8.Popis
+1  1350	    0E28  B9 000E			 mov	 cx, 14
+1  1351	    0E2B  E8 F7F3			 Call	 CopyString2
+1  1352
+1  1353	    0E2E  BE 103Fr			 lea	 si, PoznTMP
+1  1354	    0E31  BF 1533r			 lea	 di, Table8.Poznamka
+1  1355	    0E34  B9 0008			 mov	 cx, 08h
+1  1356	    0E37  E8 F7E7			 Call	 CopyString2
+1  1357
+1  1358	    0E3A  E8 FB7E			 call	 RMBR_I
+1  1359	    0E3D  BE 0997r			 lea	 si, DiskTMP
+1  1360	    0E40  BF 152Dr			 lea	 di, Table8.Disk
+1  1361	    0E43  E8 F7D0			 Call	 CopyString
+1  1362	    0E46  C3				 ret
+1  1363	    0E47			 CRR9:
+1  1364	    0E47  2E: 8A 87 2E48r		 mov	 al, byte ptr cs:[DiskData+bx+0]
+1  1365	    0E4C  A2 15AAr			 mov	 Table9._Boot, al
+1  1366	    0E4F  66| 2E: 8B 87	2E54r		 mov	 eax, dword ptr	cs:[DiskData+bx+0Ch]
+1  1367					 ;	 imul	 eax, 512
+1  1368	    0E55  66| A3 15A6r			 mov	 Table9._Size, eax
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 25
+bmanager.asm
+
+
+
+1  1369	    0E59  2E: 8A 87 2E4Cr		 mov	 al, byte ptr cs:[DiskData+bx+4]
+1  1370	    0E5E  A2 15A5r			 mov	 Table9._Sys, al
+1  1371	    0E61  2E: 8A B7 2E49r		 mov	 dh, byte ptr cs:[DiskData+bx+1]
+1  1372	    0E66  88 36	15A1r			 mov	 Table9._Head, dh
+1  1373	    0E6A  2E: 8B 8F 2E4Ar		 mov	 cx, word ptr cs:[DiskData+bx+2]
+1  1374	    0E6F  89 0E	15A2r			 mov	 Table9._SecCyl, cx
+1  1375	    0E73  E8 005A			 call	 SaveTMPSys
+1  1376	    0E76  BE 101Cr			 lea	 si, SysTMP
+1  1377	    0E79  BF 157Dr			 lea	 di, Table9.System
+1  1378	    0E7C  E8 F797			 Call	 CopyString
+1  1379	    0E7F  E8 0081			 call	 SaveTMPName
+1  1380	    0E82  BE 102Br			 lea	 si, NameTMP
+1  1381	    0E85  BF 1554r			 lea	 di, Table9.Jmeno
+1  1382	    0E88  B9 000B			 mov	 cx, 0Bh
+1  1383	    0E8B  E8 F793			 Call	 CopyString2
+1  1384	    0E8E  8A 16	0990r			 mov	 dl, RMBRD
+1  1385	    0E92  88 16	15A4r			 mov	 Table9._Disk, dl
+1  1386
+1  1387	    0E96  E8 0099			 call	 SaveLevelStatus
+1  1388	    0E99  BE 1049r			 lea	 si, LevStat
+1  1389	    0E9C  BF 1560r			 lea	 di, Table9.Popis
+1  1390	    0E9F  B9 000E			 mov	 cx, 14
+1  1391	    0EA2  E8 F77C			 Call	 CopyString2
+1  1392
+1  1393	    0EA5  BE 103Fr			 lea	 si, PoznTMP
+1  1394	    0EA8  BF 158Br			 lea	 di, Table9.Poznamka
+1  1395	    0EAB  B9 0008			 mov	 cx, 08h
+1  1396	    0EAE  E8 F770			 Call	 CopyString2
+1  1397
+1  1398	    0EB1  E8 FB07			 call	 RMBR_I
+1  1399	    0EB4  BE 0997r			 lea	 si, DiskTMP
+1  1400	    0EB7  BF 1585r			 lea	 di, Table9.Disk
+1  1401	    0EBA  E8 F759			 Call	 CopyString
+1  1402	    0EBD			 CheckRecExit:
+1  1403	    0EBD  C3				 ret
+1  1404	    0EBE			 CheckRec	 endp
+1  1405
+1  1406	    0EBE			 CheckExtPart	 proc
+1  1407	    0EBE  83 06	0991r 01		 add	 Level,	1
+1  1408	    0EC3  2E: 8A B7 2E49r		 mov	 dh, byte ptr cs:[DiskData+bx+1]
+1  1409	    0EC8  2E: 8B 8F 2E4Ar		 mov	 cx, word ptr cs:[DiskData+bx+2]
+1  1410	    0ECD  E9 FACF			 jmp	 ReadMBR
+1  1411	    0ED0			 CheckExtPart	 endp
+1  1412
+1  1413	    0ED0			 SaveTMPSys	 proc
+1  1414					 ;	 mov	 dh, 00h
+1  1415					 ;	 mov	 cx, 0001h
+1  1416	    0ED0  8A 16	0990r			 mov	 dl, RMBRD
+1  1417	    0ED4  BB 3048r			 mov	 bx, offset cs:DiskData2
+1  1418	    0ED7  8C C8				 mov	 ax, cs
+1  1419	    0ED9  8E C0				 mov	 es, ax
+1  1420	    0EDB  B8 0201			 mov	 ax, 0201h
+1  1421	    0EDE  CD 13				 int	 13h
+1  1422	    0EE0  B9 0007			 mov	 cx, 07h
+1  1423	    0EE3  BE 307Er			 lea	 si, DiskData2+36h
+1  1424	    0EE6  BF 101Cr			 lea	 di, SysTmp
+1  1425	    0EE9  E8 F735			 Call	 CopyString2
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 26
+bmanager.asm
+
+
+
+1  1426	    0EEC  80 3E	101Cr 00		 cmp	 [SysTmp], 00h
+1  1427	    0EF1  74 03	90 90			 je	 SaveTMPSys2
+1  1428	    0EF5  C3				 ret
+1  1429	    0EF6			 SaveTMPSys2:
+1  1430	    0EF6  B9 0007			 mov	 cx, 07h
+1  1431	    0EF9  BE 309Ar			 lea	 si, DiskData2+52h
+1  1432	    0EFC  BF 101Cr			 lea	 di, SysTmp
+1  1433	    0EFF  E8 F71F			 Call	 CopyString2
+1  1434	    0F02  C3				 ret
+1  1435	    0F03			 SaveTMPSys	 endp
+1  1436
+1  1437	    0F03			 SaveTMPName	 proc
+1  1438	    0F03  B9 0008			 mov	 cx, 08h
+1  1439	    0F06  BE 304Br			 lea	 si, DiskData2+3h
+1  1440	    0F09  BF 103Fr			 lea	 di, PoznTmp
+1  1441	    0F0C  E8 F712			 Call	 CopyString2
+1  1442
+1  1443	    0F0F  B9 000B			 mov	 cx, 0Bh
+1  1444	    0F12  BE 3073r			 lea	 si, DiskData2+2Bh
+1  1445	    0F15  BF 102Br			 lea	 di, NameTmp
+1  1446	    0F18  E8 F706			 Call	 CopyString2
+1  1447	    0F1B  80 3E	102Br 00		 cmp	 [NameTmp], 00h
+1  1448	    0F20  74 03	90 90			 je	 SaveTMPName2
+1  1449	    0F24  C3				 ret
+1  1450	    0F25			 SaveTMPName2:
+1  1451	    0F25  B9 000B			 mov	 cx, 0Bh
+1  1452	    0F28  BE 308Fr			 lea	 si, DiskData2+47h
+1  1453	    0F2B  BF 102Br			 lea	 di, NameTmp
+1  1454	    0F2E  E8 F6F0			 Call	 CopyString2
+1  1455	    0F31  C3				 ret
+1  1456	    0F32			 SaveTMPName	 endp
+1  1457
+1  1458	    0F32			 SaveLevelStatus proc
+1  1459	    0F32  E8 F6F7			 Call	 SetSegments
+1  1460	    0F35  2E: 8B 3E 0991r		 mov	 di, word ptr cs:[Level]
+1  1461	    0F3A  6B FF	07			 imul	 di, 7
+1  1462	    0F3D  BE 109Cr			 lea	 si, L1
+1  1463	    0F40  03 F7				 add	 si, di
+1  1464	    0F42  BF 1049r			 lea	 di, LevStat
+1  1465	    0F45  B9 0007			 mov	 cx, 7
+1  1466	    0F48  E8 F6D6			 Call	 CopyString2
+1  1467	    0F4B  2E: 8B 3E 0993r		 mov	 di, word ptr cs:[Part]
+1  1468	    0F50  6B FF	07			 imul	 di, 7
+1  1469	    0F53  BE 105Dr			 lea	 si, _P1
+1  1470	    0F56  03 F7				 add	 si, di
+1  1471	    0F58  BF 1049r			 lea	 di, LevStat
+1  1472	    0F5B  83 C7	07			 add	 di, 7
+1  1473	    0F5E  B9 0007			 mov	 cx, 7
+1  1474	    0F61  E8 F6BD			 Call	 CopyString2
+1  1475	    0F64  83 06	0993r 01		 add	 word ptr [Part], 1
+1  1476	    0F69  C3				 ret
+1  1477	    0F6A			 SaveLevelStatus endp
+1  1478
+1  1479	    0F6A			 TestIfHdd	 proc
+1  1480	    0F6A  B4 10				 mov	 ah, 10h
+1  1481	    0F6C  B2 80				 mov	 dl, 80h
+1  1482	    0F6E  CD 13				 int	 13h
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 27
+bmanager.asm
+
+
+
+1  1483	    0F70  72 0C	90 90			 jb	 TestIfHdd_1
+1  1484	    0F74  FE 06	0995r			 inc	 Disks
+1  1485	    0F78  BE 1008r			 lea	 si, HDD0
+1  1486	    0F7B  E8 003D			 Call	 TIHD_1
+1  1487	    0F7E			 TestIfHdd_1:
+1  1488	    0F7E  B4 10				 mov	 ah, 10h
+1  1489	    0F80  B2 81				 mov	 dl, 81h
+1  1490	    0F82  CD 13				 int	 13h
+1  1491	    0F84  72 0C	90 90			 jb	 TestIfHdd_2
+1  1492	    0F88  FE 06	0995r			 inc	 Disks
+1  1493	    0F8C  BE 100Dr			 lea	 si, HDD1
+1  1494	    0F8F  E8 0029			 Call	 TIHD_1
+1  1495	    0F92			 TestIfHdd_2:
+1  1496	    0F92  B4 10				 mov	 ah, 10h
+1  1497	    0F94  B2 82				 mov	 dl, 82h
+1  1498	    0F96  CD 13				 int	 13h
+1  1499	    0F98  72 0C	90 90			 jb	 TestIfHdd_3
+1  1500	    0F9C  FE 06	0995r			 inc	 Disks
+1  1501	    0FA0  BE 1012r			 lea	 si, HDD2
+1  1502	    0FA3  E8 0015			 Call	 TIHD_1
+1  1503	    0FA6			 TestIfHdd_3:
+1  1504	    0FA6  B4 10				 mov	 ah, 10h
+1  1505	    0FA8  B2 83				 mov	 dl, 83h
+1  1506	    0FAA  CD 13				 int	 13h
+1  1507	    0FAC  72 0C	90 90			 jb	 TestIfHdd_4
+1  1508	    0FB0  FE 06	0995r			 inc	 Disks
+1  1509	    0FB4  BE 1017r			 lea	 si, HDD3
+1  1510	    0FB7  E8 0001			 Call	 TIHD_1
+1  1511	    0FBA			 TestIfHdd_4:
+1  1512	    0FBA  C3				 ret
+1  1513	    0FBB			 TIHD_1:
+1  1514	    0FBB  80 3E	0995r 01		 cmp	 Disks,	1
+1  1515	    0FC0  75 0B	90 90			 jne	 TIHD_2
+1  1516	    0FC4  BF 15ACr			 lea	 di, DiskT.D1
+1  1517	    0FC7  B9 0004			 mov	 cx, 4
+1  1518	    0FCA  E8 F654			 Call	 CopyString2
+1  1519	    0FCD			 TIHD_2:
+1  1520	    0FCD  80 3E	0995r 02		 cmp	 Disks,	2
+1  1521	    0FD2  75 0B	90 90			 jne	 TIHD_3
+1  1522	    0FD6  BF 15B5r			 lea	 di, DiskT.D2
+1  1523	    0FD9  B9 0004			 mov	 cx, 4
+1  1524	    0FDC  E8 F642			 Call	 CopyString2
+1  1525	    0FDF			 TIHD_3:
+1  1526	    0FDF  80 3E	0995r 03		 cmp	 Disks,	3
+1  1527	    0FE4  75 0B	90 90			 jne	 TIHD_4
+1  1528	    0FE8  BF 15BEr			 lea	 di, DiskT.D3
+1  1529	    0FEB  B9 0004			 mov	 cx, 4
+1  1530	    0FEE  E8 F630			 Call	 CopyString2
+1  1531	    0FF1			 TIHD_4:
+1  1532	    0FF1  80 3E	0995r 04		 cmp	 Disks,	4
+1  1533	    0FF6  75 0B	90 90			 jne	 TIHD_5
+1  1534	    0FFA  BF 15C7r			 lea	 di, DiskT.D4
+1  1535	    0FFD  B9 0004			 mov	 cx, 4
+1  1536	    1000  E8 F61E			 Call	 CopyString2
+1  1537	    1003			 TIHD_5:
+1  1538	    1003  C3				 ret
+1  1539	    1004			 TestIfHdd	 endp
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 28
+bmanager.asm
+
+
+
+1  1540
+1  1541
+   1542					 include BManager.inc
+1  1543	    1004  00			 VideoStranka	 db	 0
+1  1544	    1005  07			 VideoAtribut	 db	 7
+1  1545	    1006  00			 RecordNum	 db	 0
+1  1546	    1007  01			 Ukazatel	 db	 1
+1  1547	    1008  48 44	44 30 00	 hdd0	 db	 "HDD0",00
+1  1548	    100D  48 44	44 31 00	 hdd1	 db	 "HDD1",00
+1  1549	    1012  48 44	44 32 00	 hdd2	 db	 "HDD2",00
+1  1550	    1017  48 44	44 33 00	 hdd3	 db	 "HDD3",00
+1  1551	    101C  0F*(00)		 SysTMP	 db	 15 dup(00)
+1  1552	    102B  14*(00)		 NameTmp db	 20 dup(00)
+1  1553	    103F  0A*(00)		 PoznTmp db	 10 dup(00)
+1  1554	    1049  14*(00)		 LevStat db	 20 dup(00)
+1  1555	    105D  50 61	72 5F 5F 5F 31	 _P1	 db	 "Par___1"
+1  1556	    1064  50 61	72 5F 5F 5F 32	 _P2	 db	 "Par___2"
+1  1557	    106B  50 61	72 5F 5F 5F 33	 _P3	 db	 "Par___3"
+1  1558	    1072  50 61	72 5F 5F 5F 34	 _P4	 db	 "Par___4"
+1  1559	    1079  50 61	72 5F 5F 5F 35	 _P5	 db	 "Par___5"
+1  1560	    1080  50 61	72 5F 5F 5F 36	 _P6	 db	 "Par___6"
+1  1561	    1087  50 61	72 5F 5F 5F 37	 _P7	 db	 "Par___7"
+1  1562	    108E  50 61	72 5F 5F 5F 38	 _P8	 db	 "Par___8"
+1  1563	    1095  50 61	72 5F 5F 5F 39	 _P9	 db	 "Par___9"
+1  1564	    109C  4C 65	76 5F 31 5F 5F	 L1	 db	 "Lev_1__"
+1  1565	    10A3  4C 65	76 5F 32 5F 5F	 L2	 db	 "Lev_2__"
+1  1566	    10AA  4C 65	76 5F 33 5F 5F	 L3	 db	 "Lev_3__"
+1  1567	    10B1  4C 65	76 5F 34 5F 5F	 L4	 db	 "Lev_4__"
+1  1568	    10B8  4C 65	76 5F 35 5F 5F	 L5	 db	 "Lev_5__"
+1  1569	    10BF  4C 65	76 5F 36 5F 5F	 L6	 db	 "Lev_6__"
+1  1570	    10C6  4C 65	76 5F 37 5F 5F	 L7	 db	 "Lev_7__"
+1  1571	    10CD  4C 65	76 5F 38 5F 5F	 L8	 db	 "Lev_8__"
+1  1572	    10D4  4C 65	76 5F 39 5F 5F	 L9	 db	 "Lev_9__"
+1  1573	    10DB			 Level_L Label	 Word
+1  1574
+1  1575	    10DB  0D 0A	0D 0A 0D 0A 0D+	 PrintMenuTableF db	 13,10,13,10,13,10,13,10
+   1576		  0A
+1  1577	    10E3  20 20	DA C4 C4 C4 C4+			 db	 "								    +
+   1578		  C4 C4	C4 C4 C4 C4 C4+	 ⁄ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒø", 0Dh,  +
+   1579		  C4 C4	C4 C4 C4 C4 C4+	 0Ah
+   1580		  C4 C4	C4 C4 C4 C4 C4+
+   1581		  C4 C4	C4 C4 C4 C4 C4+
+   1582		  C4 C4	C4 C4 C4 C4 C4+
+   1583		  C4 C4	C4 C4 C4 C4 C4+
+   1584		  C4 C4	C4 C4 C4 C4 C4+
+   1585		  C4 C4	C4 C4 C4 C4 C4+
+   1586		  C4 C4	C4 C4 C4 C4 C4+
+   1587		  C4 C4	C4 C4 C4 C4 C4+
+   1588		  C4 C4	C4 C4 C4 C4 BF+
+   1589		  0D 0A
+1  1590	    1139  20 20	B3 20 20 20 4E+			 db	 "  ≥	N†zev	≥      Popis	  ≥  Velikost  ≥ SystÇm	≥ Disk ≥    +
+   1591		  A0 7A	65 76 20 20 20+	 Pozn†mka      ≥", 0Dh,	0Ah
+   1592		  B3 20	20 20 20 20 20+
+   1593		  50 6F	70 69 73 20 20+
+   1594		  20 20	20 20 B3 20 20+
+   1595		  56 65	6C 69 6B 6F 73+
+   1596		  74 20	20 B3 20 53 79+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 29
+bmanager.asm
+
+
+
+   1597		  73 74	82 6D 20 B3 20+
+   1598		  44 69	73 6B 20 B3 20+
+   1599		  20 20	20 20 20 20 50+
+   1600		  6F 7A	6E A0 6D 6B 61+
+   1601		  20 20	20 20 20 20 B3+
+   1602		  0D 0A
+1  1603	    118F  20 20	B3 C4 C4 C4 C4+			 db	 "								    +
+   1604		  C4 C4	C4 C4 C4 C4 C4+	 ≥ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ≥", 0Dh,  +
+   1605		  C4 C4	C4 C4 C4 C4 C4+	 0Ah,00
+   1606		  C4 C4	C4 C4 C4 C4 C4+
+   1607		  C4 C4	C4 C4 C4 C4 C4+
+   1608		  C4 C4	C4 C4 C4 C4 C4+
+   1609		  C4 C4	C4 C4 C4 C4 C4+
+   1610		  C4 C4	C4 C4 C4 C4 C4+
+   1611		  C4 C4	C4 C4 C4 C4 C4+
+   1612		  C4 C4	C4 C4 C4 C4 C4+
+   1613		  C4 C4	C4 C4 C4 C4 C4+
+   1614		  C4 C4	C4 C4 C4 C4 B3+
+   1615		  0D 0A	00
+1  1616	    11E6  20 20	B3 20 20 20 20+	 PrintMenuTableM db	 "  ≥		≥		  ≥	       ≥	≥      ≥    +
+   1617		  20 20	20 20 20 20 20+	 ≥", 0Dh, 0Ah,00
+   1618		  B3 20	20 20 20 20 20+
+   1619		  20 20	20 20 20 20 20+
+   1620		  20 20	20 20 B3 20 20+
+   1621		  20 20	20 20 20 20 20+
+   1622		  20 20	20 B3 20 20 20+
+   1623		  20 20	20 20 20 B3 20+
+   1624		  20 20	20 20 20 B3 20+
+   1625		  20 20	20 20 20 20 20+
+   1626		  20 20	20 20 20 20 20+
+   1627		  20 20	20 20 20 20 B3+
+   1628		  0D 0A	00
+1  1629	    123D  20 20	C0 C4 C4 C4 C4+	 PrintMenuTableE db	 "								    +
+   1630		  C4 C4	C4 C4 C4 C4 C4+	 ¿ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ",18h,19h,   +
+   1631		  C4 C4	C4 C4 C4 C4 C4+	 1Ch,"Ÿ", 0Dh, 0Ah,00
+   1632		  C4 C4	C4 C4 C4 C4 C4+
+   1633		  C4 C4	C4 C4 C4 C4 C4+
+   1634		  C4 C4	C4 C4 C4 C4 C4+
+   1635		  C4 C4	C4 C4 C4 C4 C4+
+   1636		  C4 C4	C4 C4 C4 C4 C4+
+   1637		  C4 C4	C4 C4 C4 C4 C4+
+   1638		  C4 C4	C4 C4 C4 C4 C4+
+   1639		  C4 C4	C4 C4 C4 C4 C4+
+   1640		  C4 C4	C4 18 19 1C D9+
+   1641		  0D 0A	00
+1  1642
+1  1643	00001294			 Table_	 struc
+1  1644	00000000  01*(2D 2D 2D 2D 2D  +		 Jmeno		 db	 "-----------",00
+   1645		  2D 2D	2D 2D 2D 2D   +
+   1646		  00)
+1  1647	0000000C  01*(2D 2D 2D 2D 2D  +		 Popis		 db	 "--------------",00,00,00
+   1648		  2D 2D	2D 2D 2D 2D 2D+
+   1649		  2D 2D	00 00 00)
+1  1650	0000001D  01*(0C*(00))			 Velikost	 db	 12 dup(00)
+1  1651	00000029  01*(2D 2D 2D 2D 2D  +		 System		 db	 "------",00,00
+   1652		  2D 00	00)
+1  1653	00000031  01*(06*(00))			 Disk		 db	 6 dup(00)
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 30
+bmanager.asm
+
+
+
+1  1654	00000037  01*(16*(00))			 Poznamka	 db	 22 dup(00)
+1  1655	0000004D  01*(??)			 _Head		 db	 ?
+1  1656	0000004E  01*(????)			 _SecCyl	 dw	 ?
+1  1657	00000050  01*(??)			 _Disk		 db	 ?
+1  1658	00000051  01*(??)			 _Sys		 db	 ?
+1  1659	00000052  01*(????????)			 _Size		 dd	 ?
+1  1660	00000056  01*(2D 00)			 _Boot		 db	 "-",00
+1  1661	00000058			 Table_	 ends
+1  1662	    1294  2D 2D	2D 2D 2D 2D 2D+	 Table1	 Table_	<>
+   1663		  2D 2D	2D 2D 00 2D 2D+
+   1664		  2D 2D	2D 2D 2D 2D 2D+
+   1665		  2D 2D	2D 2D 2D 00 00+
+   1666		  00 0C*(00) 2D	2D 2D +
+   1667		  2D 2D	2D 00 00 06*  +
+   1668		  (00) 16*(00) 09*(??)+
+   1669		  2D 00
+1  1670	    12EC  2D 2D	2D 2D 2D 2D 2D+	 Table2	 Table_	<>
+   1671		  2D 2D	2D 2D 00 2D 2D+
+   1672		  2D 2D	2D 2D 2D 2D 2D+
+   1673		  2D 2D	2D 2D 2D 00 00+
+   1674		  00 0C*(00) 2D	2D 2D +
+   1675		  2D 2D	2D 00 00 06*  +
+   1676		  (00) 16*(00) 09*(??)+
+   1677		  2D 00
+1  1678	    1344  2D 2D	2D 2D 2D 2D 2D+	 Table3	 Table_	<>
+   1679		  2D 2D	2D 2D 00 2D 2D+
+   1680		  2D 2D	2D 2D 2D 2D 2D+
+   1681		  2D 2D	2D 2D 2D 00 00+
+   1682		  00 0C*(00) 2D	2D 2D +
+   1683		  2D 2D	2D 00 00 06*  +
+   1684		  (00) 16*(00) 09*(??)+
+   1685		  2D 00
+1  1686	    139C  2D 2D	2D 2D 2D 2D 2D+	 Table4	 Table_	<>
+   1687		  2D 2D	2D 2D 00 2D 2D+
+   1688		  2D 2D	2D 2D 2D 2D 2D+
+   1689		  2D 2D	2D 2D 2D 00 00+
+   1690		  00 0C*(00) 2D	2D 2D +
+   1691		  2D 2D	2D 00 00 06*  +
+   1692		  (00) 16*(00) 09*(??)+
+   1693		  2D 00
+1  1694	    13F4  2D 2D	2D 2D 2D 2D 2D+	 Table5	 Table_	<>
+   1695		  2D 2D	2D 2D 00 2D 2D+
+   1696		  2D 2D	2D 2D 2D 2D 2D+
+   1697		  2D 2D	2D 2D 2D 00 00+
+   1698		  00 0C*(00) 2D	2D 2D +
+   1699		  2D 2D	2D 00 00 06*  +
+   1700		  (00) 16*(00) 09*(??)+
+   1701		  2D 00
+1  1702	    144C  2D 2D	2D 2D 2D 2D 2D+	 Table6	 Table_	<>
+   1703		  2D 2D	2D 2D 00 2D 2D+
+   1704		  2D 2D	2D 2D 2D 2D 2D+
+   1705		  2D 2D	2D 2D 2D 00 00+
+   1706		  00 0C*(00) 2D	2D 2D +
+   1707		  2D 2D	2D 00 00 06*  +
+   1708		  (00) 16*(00) 09*(??)+
+   1709		  2D 00
+1  1710	    14A4  2D 2D	2D 2D 2D 2D 2D+	 Table7	 Table_	<>
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 31
+bmanager.asm
+
+
+
+   1711		  2D 2D	2D 2D 00 2D 2D+
+   1712		  2D 2D	2D 2D 2D 2D 2D+
+   1713		  2D 2D	2D 2D 2D 00 00+
+   1714		  00 0C*(00) 2D	2D 2D +
+   1715		  2D 2D	2D 00 00 06*  +
+   1716		  (00) 16*(00) 09*(??)+
+   1717		  2D 00
+1  1718	    14FC  2D 2D	2D 2D 2D 2D 2D+	 Table8	 Table_	<>
+   1719		  2D 2D	2D 2D 00 2D 2D+
+   1720		  2D 2D	2D 2D 2D 2D 2D+
+   1721		  2D 2D	2D 2D 2D 00 00+
+   1722		  00 0C*(00) 2D	2D 2D +
+   1723		  2D 2D	2D 00 00 06*  +
+   1724		  (00) 16*(00) 09*(??)+
+   1725		  2D 00
+1  1726	    1554  2D 2D	2D 2D 2D 2D 2D+	 Table9	 Table_	<>
+   1727		  2D 2D	2D 2D 00 2D 2D+
+   1728		  2D 2D	2D 2D 2D 2D 2D+
+   1729		  2D 2D	2D 2D 2D 00 00+
+   1730		  00 0C*(00) 2D	2D 2D +
+   1731		  2D 2D	2D 00 00 06*  +
+   1732		  (00) 16*(00) 09*(??)+
+   1733		  2D 00
+1  1734
+1  1735	000015AC			 DiskT_	 struc
+1  1736	00000000  01*(20 20 20 20 0D  +		 D1		 db	 "    ",0dh,0ah,20h,20h,20h
+   1737		  0A 20	20 20)
+1  1738	00000009  01*(20 20 20 20 0D  +		 D2		 db	 "    ",0dh,0ah,20h,20h,20h
+   1739		  0A 20	20 20)
+1  1740	00000012  01*(20 20 20 20 0D  +		 D3		 db	 "    ",0dh,0ah,20h,20h,20h
+   1741		  0A 20	20 20)
+1  1742	0000001B  01*(20 20 20 20 00)		 D4		 db	 "    ",00
+1  1743	00000020			 DiskT_	 ends
+1  1744	    15AC  20 20	20 20 0D 0A 20+	 DiskT	 DiskT_	<>
+   1745		  20 20	20 20 20 20 0D+
+   1746		  0A 20	20 20 20 20 20+
+   1747		  20 0D	0A 20 20 20 20+
+   1748		  20 20	20 00
+1  1749
+1  1750					 include LOGO.inc
+2  1751	    15CC  00 00	00 00 00 00 00+	 Logo_Gr:	 db									    +
+   1752		  00 00	00 00 00 8D 8D+	 "            çç     »     çç                †     †                 çç    —»     çç    "
+   1753		  00 00	00 00 00 C8 00+
+   1754		  00 00	00 00 8D 8D 00+
+   1755		  00 00	00 00 00 00 00+
+   1756		  00 00	00 00 00 00 00+
+   1757		  00 A0	00 00 00 00 00+
+   1758		  A0 00	00 00 00 00 00+
+   1759		  00 00	00 00 00 00 00+
+   1760		  00 00	00 00 8D 8D 00+
+   1761		  00 00	00 D1 C8 00 00+
+   1762		  00 00	00 8D 8D 00 00+
+   1763		  00 00
+2  1764	    1622  00 00	00 00 00 00 BF+			 db									    +
+   1765		  BF BF	BF BF A0 A0 A0+	 "      øøøøø†††††††† îîîî            ççççççççççççççç      øøøøøøøøøø      † íííí       "
+   1766		  A0 A0	A0 A0 A0 00 94+
+   1767		  94 94	94 00 00 00 00+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 32
+bmanager.asm
+
+
+
+   1768		  00 00	00 00 00 00 00+
+   1769		  00 8D	8D 8D 8D 8D 8D+
+   1770		  8D 8D	8D 8D 8D 8D 8D+
+   1771		  8D 8D	00 00 00 00 00+
+   1772		  00 BF	BF BF BF BF BF+
+   1773		  BF BF	BF BF 00 00 00+
+   1774		  00 00	00 A0 00 92 92+
+   1775		  92 92	00 00 00 00 00+
+   1776		  00 00
+2  1777	    1678  00 00	00 00 00 8D 8D+			 db									    +
+   1778		  8D 8D	8D 8D 8D 8D 8D+	 "     ççççççççççççççç øøøøøøøøøøøøøø         êêêê            çç—‘‘”çç    øøøøøøøøøøøøøø"
+   1779		  8D 8D	8D 8D 8D 8D 00+
+   1780		  BF BF	BF BF BF BF BF+
+   1781		  BF BF	BF BF BF BF BF+
+   1782		  00 00	00 00 00 00 00+
+   1783		  00 00	90 90 90 90 00+
+   1784		  00 00	00 00 00 00 00+
+   1785		  00 00	00 00 8D 8D D1+
+   1786		  D4 D4	D3 8D 8D 00 00+
+   1787		  00 00	BF BF BF BF BF+
+   1788		  BF BF	BF BF BF BF BF+
+   1789		  BF BF
+2  1790	    16CE  00 00	00 00 00 00 00+			 db									    +
+   1791		  00 00	00 00 00 00 90+	 "             êêêê          »—çç‘‘‘”çç   øøøøøøøøøø                † åååå        »—””çç"
+   1792		  90 90	90 00 00 00 00+
+   1793		  00 00	00 00 00 00 C8+
+   1794		  D1 8D	8D D4 D4 D4 D3+
+   1795		  8D 8D	00 00 00 BF BF+
+   1796		  BF BF	BF BF BF BF BF+
+   1797		  BF 00	00 00 00 00 00+
+   1798		  00 00	00 00 00 00 00+
+   1799		  00 00	00 A0 00 8C 8C+
+   1800		  8C 8C	00 00 00 00 00+
+   1801		  00 00	00 C8 D1 D3 D3+
+   1802		  8D 8D
+2  1803	    1724  D1 C8	D4 D3 8D 8D 00+			 db									    +
+   1804		  00 00	BF BF BF BF BF+	 "—»‘”çç   øøøøøøøøøøøøø               ãããã      »—”‘‘‘çç—»‘ çç     çøøøøøøøøøøøøøø     "
+   1805		  BF BF	BF BF BF BF BF+
+   1806		  BF 00	00 00 00 00 00+
+   1807		  00 00	00 00 00 00 00+
+   1808		  00 00	8B 8B 8B 8B 00+
+   1809		  00 00	00 00 00 C8 D1+
+   1810		  D3 D4	D4 D4 8D 8D D1+
+   1811		  C8 D4	00 8D 8D 00 00+
+   1812		  00 00	00 8D BF BF BF+
+   1813		  BF BF	BF BF BF BF BF+
+   1814		  BF BF	BF BF 00 00 00+
+   1815		  00 00
+2  1816	    177A  00 00	00 00 00 00 8B+			 db									    +
+   1817		  8B 8B	8B 00 00 00 00+	 "      ãããã     —”‘‘—»»çç—»  çç     çç    øøøøøøøøøøøø        ––––    ”‘‘””———çç—»  çç "
+   1818		  00 D1	D3 D4 D4 D1 C8+
+   1819		  C8 8D	8D D1 C8 00 00+
+   1820		  8D 8D	00 00 00 00 00+
+   1821		  8D 8D	00 00 00 00 BF+
+   1822		  BF BF	BF BF BF BF BF+
+   1823		  BF BF	BF BF 00 00 00+
+   1824		  00 00	00 00 00 D0 D0+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 33
+bmanager.asm
+
+
+
+   1825		  D0 D0	00 00 00 00 D3+
+   1826		  D4 D4	D3 D3 D1 D1 D1+
+   1827		  8D 8D	D1 C8 00 00 8D+
+   1828		  8D 00
+2  1829	    17D0  00 00	00 00 8D 8D 00+			 db									    +
+   1830		  00 00	00 00 00 00 00+	 "    çç        øøøøøøøø††††††  ––––   ‘‘‘‘‘””””ççç»»çççç    çç       øøøøøøøø†      † –"
+   1831		  BF BF	BF BF BF BF BF+
+   1832		  BF A0	A0 A0 A0 A0 A0+
+   1833		  00 00	D0 D0 D0 D0 00+
+   1834		  00 00	D4 D4 D4 D4 D4+
+   1835		  D3 D3	D3 D3 8D 8D 8D+
+   1836		  C8 C8	8D 8D 8D 8D 00+
+   1837		  00 00	00 8D 8D 00 00+
+   1838		  00 00	00 00 00 BF BF+
+   1839		  BF BF	BF BF BF BF A0+
+   1840		  00 00	00 00 00 00 A0+
+   1841		  00 D0
+2  1842	    1826  D0 D0	D0 00 00 00 D4+			 db									    +
+   1843		  D4 D4	D4 D4 D4 D4 D4+	 "–––   ‘‘‘‘‘‘‘‘”‘ççççç—ççç  ççç    øøøøøøøøøø †      † ––––      ‘‘‘‘‘‘‘”ççç”—»çççççç ø"
+   1844		  D3 D4	8D 8D 8D 8D 8D+
+   1845		  D1 8D	8D 8D 00 00 8D+
+   1846		  8D 8D	00 00 00 00 BF+
+   1847		  BF BF	BF BF BF BF BF+
+   1848		  BF BF	00 A0 00 00 00+
+   1849		  00 00	00 A0 00 D0 D0+
+   1850		  D0 D0	00 00 00 00 00+
+   1851		  00 D4	D4 D4 D4 D4 D4+
+   1852		  D4 D3	8D 8D 8D D3 D1+
+   1853		  C8 8D	8D 8D 8D 8D 8D+
+   1854		  00 BF
+2  1855	    187C  BF BF	BF BF BF BF BF+			 db									    +
+   1856		  BF BF	00 00 00 00 00+	 "øøøøøøøøø      ††††††  ––––      »»‘‘‘‘‘‘‘‘‘”—» çççøøøøøøøøøø                 ––––    "
+   1857		  00 A0	A0 A0 A0 A0 A0+
+   1858		  00 00	D0 D0 D0 D0 00+
+   1859		  00 00	00 00 00 C8 C8+
+   1860		  D4 D4	D4 D4 D4 D4 D4+
+   1861		  D4 D4	D3 D1 C8 00 8D+
+   1862		  8D 8D	BF BF BF BF BF+
+   1863		  BF BF	BF BF BF 00 00+
+   1864		  00 00	00 00 00 00 00+
+   1865		  00 00	00 00 00 00 00+
+   1866		  00 D0	D0 D0 D0 00 00+
+   1867		  00 00
+2  1868	    18D2  00 D1	D1 D1 00 00 00+			 db									    +
+   1869		  D4 D4	D4 D4 D4 D4 D3+	 " ———   ‘‘‘‘‘‘”—»   øøøøøøøøøø                  ––––    ”””      ‘‘‘‘”—     øøøøøøøøøøø"
+   1870		  D1 C8	00 00 00 BF BF+
+   1871		  BF BF	BF BF BF BF BF+
+   1872		  BF 00	00 00 00 00 00+
+   1873		  00 00	00 00 00 00 00+
+   1874		  00 00	00 00 00 D0 D0+
+   1875		  D0 D0	00 00 00 00 D3+
+   1876		  D3 D3	00 00 00 00 00+
+   1877		  00 D4	D4 D4 D4 D3 D1+
+   1878		  00 00	00 00 00 BF BF+
+   1879		  BF BF	BF BF BF BF BF+
+   1880		  BF BF
+2  1881	    1928  BF BF	BF BF 00 00 00+			 db									    +
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 34
+bmanager.asm
+
+
+
+   1882		  00 A0	A0 A0 A0 A0 A0+	 "øøøø    ††††††  ––––   ‘‘‘»        ‘‘ççççç      øøøøøøøøøøøøøø†      † ––––   ‘”—»    "
+   1883		  00 00	D0 D0 D0 D0 00+
+   1884		  00 00	D4 D4 D4 C8 00+
+   1885		  00 00	00 00 00 00 00+
+   1886		  D4 D4	8D 8D 8D 8D 8D+
+   1887		  00 00	00 00 00 00 BF+
+   1888		  BF BF	BF BF BF BF BF+
+   1889		  BF BF	BF BF BF BF A0+
+   1890		  00 00	00 00 00 00 A0+
+   1891		  00 D0	D0 D0 D0 00 00+
+   1892		  00 D4	D3 D1 C8 00 00+
+   1893		  00 00
+2  1894	    197E  00 00	00 00 8D 8D 8D+			 db									    +
+   1895		  8D 8D	8D 8D 8D 8D 00+	 "    ççççççççç           øøøøøøø†      † ––––   ‘”—»»»»»»»»ççç”—»  ççç              øøø"
+   1896		  00 00	00 00 00 00 00+
+   1897		  00 00	00 BF BF BF BF+
+   1898		  BF BF	BF A0 00 00 00+
+   1899		  00 00	00 A0 00 D0 D0+
+   1900		  D0 D0	00 00 00 D4 D3+
+   1901		  D1 C8	C8 C8 C8 C8 C8+
+   1902		  C8 C8	8D 8D 8D D3 D1+
+   1903		  C8 00	00 8D 8D 8D 00+
+   1904		  00 00	00 00 00 00 00+
+   1905		  00 00	00 00 00 00 BF+
+   1906		  BF BF
+2  1907	    19D4  BF A0	A0 A0 A0 A0 A0+			 db									    +
+   1908		  00 00	D0 D0 D0 D0 00+	 "ø††††††  ––––   ‘”————————çç—‘”—»    çç                         ––––   ‘””””””””ççç”‘”"
+   1909		  00 00	D4 D3 D1 D1 D1+
+   1910		  D1 D1	D1 D1 D1 8D 8D+
+   1911		  D1 D4	D3 D1 C8 00 00+
+   1912		  00 00	8D 8D 00 00 00+
+   1913		  00 00	00 00 00 00 00+
+   1914		  00 00	00 00 00 00 00+
+   1915		  00 00	00 00 00 00 00+
+   1916		  00 D0	D0 D0 D0 00 00+
+   1917		  00 D4	D3 D3 D3 D3 D3+
+   1918		  D3 D3	D3 8D 8D 8D D3+
+   1919		  D4 D3
+2  1920	    1A2A  D1 C8	00 00 00 00 8D+			 db									    +
+   1921		  8D 8D	00 00 00 00 00+	 "—»    ççç                        »»»»   ‘‘‘‘‘‘‘‘‘çç‘‘‘”—»     çç                      "
+   1922		  00 00	00 00 00 00 00+
+   1923		  00 00	00 00 00 00 00+
+   1924		  00 00	00 00 00 C8 C8+
+   1925		  C8 C8	00 00 00 D4 D4+
+   1926		  D4 D4	D4 D4 D4 D4 D4+
+   1927		  8D 8D	D4 D4 D4 D3 D1+
+   1928		  C8 00	00 00 00 00 8D+
+   1929		  8D 00	00 00 00 00 00+
+   1930		  00 00	00 00 00 00 00+
+   1931		  00 00	00 00 00 00 00+
+   1932		  00 00
+2  1933	    1A80  A0 00	C4 C4 C4 C4 00+			 db									    +
+   1934		  00 00	D4 D4 D4 D4 D4+	 "† ƒƒƒƒ   ‘‘‘‘‘‘‘‘‘çç‘‘‘”—»     çç       øøøøøø           »»»»   ‘‘‘‘‘‘‘‘‘çç‘‘‘”—      "
+   1935		  D4 D4	D4 D4 8D 8D D4+
+   1936		  D4 D4	D3 D1 C8 00 00+
+   1937		  00 00	00 8D 8D 00 00+
+   1938		  00 00	00 00 00 BF BF+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 35
+bmanager.asm
+
+
+
+   1939		  BF BF	BF BF 00 00 00+
+   1940		  00 00	00 00 00 00 00+
+   1941		  00 C8	C8 C8 C8 00 00+
+   1942		  00 D4	D4 D4 D4 D4 D4+
+   1943		  D4 D4	D4 8D 8D D4 D4+
+   1944		  D4 D3	D1 00 00 00 00+
+   1945		  00 00
+2  1946	    1AD6  8D 8D	00 00 00 00 00+			 db									    +
+   1947		  BF BF	BF BF BF BF BF+	 "çç     øøøøøøøøø          ¿¿¿¿   ‘”—»     ççç ‘”      ççç    øøøøøøøøøøø         ¿¿¿¿ "
+   1948		  BF BF	00 00 00 00 00+
+   1949		  00 00	00 00 00 C0 C0+
+   1950		  C0 C0	00 00 00 D4 D3+
+   1951		  D1 C8	00 00 00 00 00+
+   1952		  8D 8D	8D 00 D4 D3 00+
+   1953		  00 00	00 00 00 8D 8D+
+   1954		  8D 00	00 00 00 BF BF+
+   1955		  BF BF	BF BF BF BF BF+
+   1956		  BF BF	00 00 00 00 00+
+   1957		  00 00	00 00 C0 C0 C0+
+   1958		  C0 00
+2  1959	    1B2C  00 00	D4 D3 D1 C8 C8+			 db									    +
+   1960		  C8 00	00 00 00 8D 8D+	 "  ‘”—»»»    çç ‘       çç    øøøø     øøøø††††††  ¿¿¿¿   ‘”———      ççç     ççç    øøø"
+   1961		  00 D4	00 00 00 00 00+
+   1962		  00 00	8D 8D 00 00 00+
+   1963		  00 BF	BF BF BF 00 00+
+   1964		  00 00	00 BF BF BF BF+
+   1965		  A0 A0	A0 A0 A0 A0 00+
+   1966		  00 C0	C0 C0 C0 00 00+
+   1967		  00 D4	D3 D1 D1 D1 00+
+   1968		  00 00	00 00 00 8D 8D+
+   1969		  8D 00	00 00 00 00 8D+
+   1970		  8D 8D	00 00 00 00 BF+
+   1971		  BF BF
+2  1972	    1B82  BF 00	00 00 00 00 00+			 db									    +
+   1973		  00 BF	BF A0 00 00 00+	 "ø       øø†      † ????   ‘”””        ççççççççç     øøø        øø†      † ????   ‘‘‘» "
+   1974		  00 00	00 A0 00 3F 3F+
+   1975		  3F 3F	00 00 00 D4 D3+
+   1976		  D3 D3	00 00 00 00 00+
+   1977		  00 00	00 8D 8D 8D 8D+
+   1978		  8D 8D	8D 8D 8D 00 00+
+   1979		  00 00	00 BF BF BF 00+
+   1980		  00 00	00 00 00 00 00+
+   1981		  BF BF	A0 00 00 00 00+
+   1982		  00 00	A0 00 3F 3F 3F+
+   1983		  3F 00	00 00 D4 D4 D4+
+   1984		  C8 00
+2  1985	    1BD8  00 00	00 00 00 00 00+			 db									    +
+   1986		  00 00	8D 8D 8D 8D 8D+	 "         ççççç       øøø        øøø††††††  ‹‹‹‹    ”—»»»»»»»»»»»”—»         øøø       "
+   1987		  00 00	00 00 00 00 00+
+   1988		  BF BF	BF 00 00 00 00+
+   1989		  00 00	00 00 BF BF BF+
+   1990		  A0 A0	A0 A0 A0 A0 00+
+   1991		  00 DC	DC DC DC 00 00+
+   1992		  00 00	D3 D1 C8 C8 C8+
+   1993		  C8 C8	C8 C8 C8 C8 C8+
+   1994		  C8 D3	D1 C8 00 00 00+
+   1995		  00 00	00 00 00 00 BF+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 36
+bmanager.asm
+
+
+
+   1996		  BF BF	00 00 00 00 00+
+   1997		  00 00
+2  1998	    1C2E  BF BF	BF BF 00 00 00+			 db									    +
+   1999		  00 00	00 00 00 DD DD+	 "øøøø        ››››   ‘”———————————‘”—»         øøøøøøøøøøøøø         ››››   ‘”””””””””””"
+   2000		  DD DD	00 00 00 D4 D3+
+   2001		  D1 D1	D1 D1 D1 D1 D1+
+   2002		  D1 D1	D1 D1 D4 D3 D1+
+   2003		  C8 00	00 00 00 00 00+
+   2004		  00 00	00 BF BF BF BF+
+   2005		  BF BF	BF BF BF BF BF+
+   2006		  BF BF	00 00 00 00 00+
+   2007		  00 00	00 00 DD DD DD+
+   2008		  DD 00	00 00 D4 D3 D3+
+   2009		  D3 D3	D3 D3 D3 D3 D3+
+   2010		  D3 D3
+2  2011	    1C84  D3 D4	8D 8D 8D 8D 8D+			 db									    +
+   2012		  00 00	00 00 00 00 00+	 "”‘ççççç        øøøøøøøøøøøøø††††††  ﬁﬁﬁﬁ   ‘‘‘‘‘‘‘‘‘‘‘‘ççççççççç      øøøøøøøøøøøø†   "
+   2013		  00 BF	BF BF BF BF BF+
+   2014		  BF BF	BF BF BF BF BF+
+   2015		  A0 A0	A0 A0 A0 A0 00+
+   2016		  00 DE	DE DE DE 00 00+
+   2017		  00 D4	D4 D4 D4 D4 D4+
+   2018		  D4 D4	D4 D4 D4 D4 8D+
+   2019		  8D 8D	8D 8D 8D 8D 8D+
+   2020		  8D 00	00 00 00 00 00+
+   2021		  BF BF	BF BF BF BF BF+
+   2022		  BF BF	BF BF BF A0 00+
+   2023		  00 00
+2  2024	    1CDA  00 00	00 A0 00 DE DE+			 db									    +
+   2025		  DE DE	00 00 00 D4 D4+	 "   † ﬁﬁﬁﬁ   ‘‘‘‘‘‘‘‘‘‘‘ççç”—»  ççç               øø†      † ‡‡‡‡   ‘‘‘‘‘‘‘‘‘‘çç‘‘”—   "
+   2026		  D4 D4	D4 D4 D4 D4 D4+
+   2027		  D4 D4	8D 8D 8D D3 D1+
+   2028		  C8 00	00 8D 8D 8D 00+
+   2029		  00 00	00 00 00 00 00+
+   2030		  00 00	00 00 00 00 00+
+   2031		  BF BF	A0 00 00 00 00+
+   2032		  00 00	A0 00 E0 E0 E0+
+   2033		  E0 00	00 00 D4 D4 D4+
+   2034		  D4 D4	D4 D4 D4 D4 D4+
+   2035		  8D 8D	D4 D4 D3 D1 00+
+   2036		  00 00
+2  2037	    1D30  00 00	8D 8D 00 00 00+			 db									    +
+   2038		  00 00	00 00 00 00 00+	 "  çç                 ††††††  ‡‡‡‡   ‘”—»   ‘”ççç»‘”      ççç                        ‡‡"
+   2039		  00 00	00 00 00 00 00+
+   2040		  A0 A0	A0 A0 A0 A0 00+
+   2041		  00 E0	E0 E0 E0 00 00+
+   2042		  00 D4	D3 D1 C8 00 00+
+   2043		  00 D4	D3 8D 8D 8D C8+
+   2044		  D4 D3	00 00 00 00 00+
+   2045		  00 8D	8D 8D 00 00 00+
+   2046		  00 00	00 00 00 00 00+
+   2047		  00 00	00 00 00 00 00+
+   2048		  00 00	00 00 00 00 00+
+   2049		  E0 E0
+2  2050	    1D86  E0 E0	00 00 00 D4 D3+			 db									    +
+   2051		  D1 C8	C8 00 00 D4 D3+	 "‡‡   ‘”—»»  ‘”çç——‘»       çç  øøøøøøøøøøøøø         ‡‡‡‡   ‘”——»»»‘‘çç”——»»      çç  "
+   2052		  8D 8D	D1 D1 D4 C8 00+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 37
+bmanager.asm
+
+
+
+   2053		  00 00	00 00 00 00 8D+
+   2054		  8D 00	00 BF BF BF BF+
+   2055		  BF BF	BF BF BF BF BF+
+   2056		  BF BF	00 00 00 00 00+
+   2057		  00 00	00 00 E0 E0 E0+
+   2058		  E0 00	00 00 D4 D3 D1+
+   2059		  D1 C8	C8 C8 D4 D4 8D+
+   2060		  8D D3	D1 D1 C8 C8 00+
+   2061		  00 00	00 00 00 8D 8D+
+   2062		  00 00
+2  2063	    1DDC  BF BF	BF BF BF BF BF+			 db									    +
+   2064		  BF BF	BF BF BF BF BF+	 "øøøøøøøøøøøøøø        ‡‡‡‡   ‘””————‘‘çç””——»»     çç  øøøøøøøøøøøøø †     † ‡‡‡‡   ‘‘"
+   2065		  00 00	00 00 00 00 00+
+   2066		  00 E0	E0 E0 E0 00 00+
+   2067		  00 D4	D3 D3 D1 D1 D1+
+   2068		  D1 D4	D4 8D 8D D3 D3+
+   2069		  D1 D1	C8 C8 00 00 00+
+   2070		  00 00	8D 8D 00 00 BF+
+   2071		  BF BF	BF BF BF BF BF+
+   2072		  BF BF	BF BF BF 00 A0+
+   2073		  00 00	00 00 00 A0 00+
+   2074		  E0 E0	E0 E0 00 00 00+
+   2075		  D4 D4
+2  2076	    1E32  D3 D3	D3 D3 D4 D4 D4+			 db									    +
+   2077		  8D 8D	8D D3 D3 D1 D1+	 "””””‘‘‘ççç””——»    ççç   øøøøøø      †††††††† ‡‡‡‡   ‘‘‘‘‘‘‘‘ ‘çç‘””—»    çç    øøøø  "
+   2078		  C8 00	00 00 00 8D 8D+
+   2079		  8D 00	00 00 BF BF BF+
+   2080		  BF BF	BF 00 00 00 00+
+   2081		  00 00	A0 A0 A0 A0 A0+
+   2082		  A0 A0	A0 00 E0 E0 E0+
+   2083		  E0 00	00 00 D4 D4 D4+
+   2084		  D4 D4	D4 D4 D4 00 D4+
+   2085		  8D 8D	D4 D3 D3 D1 C8+
+   2086		  00 00	00 00 8D 8D 00+
+   2087		  00 00	00 BF BF BF BF+
+   2088		  00 00
+2  2089	    1E88  00 00	00 00 00 00 00+			 db									    +
+   2090		  00 00	00 00 00 00 A0+	 "             † ‡‡‡‡    ‘‘‘‘‘‘    ççç”—»  ççç    øøøø                           ‘‘‘‘   "
+   2091		  00 E0	E0 E0 E0 00 00+
+   2092		  00 00	D4 D4 D4 D4 D4+
+   2093		  D4 00	00 00 00 8D 8D+
+   2094		  8D D3	D1 C8 00 00 8D+
+   2095		  8D 8D	00 00 00 00 BF+
+   2096		  BF BF	BF 00 00 00 00+
+   2097		  00 00	00 00 00 00 00+
+   2098		  00 00	00 00 00 00 00+
+   2099		  20 20	20 20 00 00 00+
+   2100		  00 00	D4 D4 D4 D4 00+
+   2101		  00 00
+2  2102	    1EDE  00 00	00 8D 8D 8D 8D+			 db	 "   ççççççççç     øøø                   			    +
+   2103		  8D 8D	8D 8D 8D 00 00+	       »         ‘ççççç       øøø           "
+   2104		  00 00	00 BF BF BF 00+
+   2105		  00 00	00 00 00 00 00+
+   2106		  00 00	00 00 00 00 00+
+   2107		  00 00	00 00 20 20 20+
+   2108		  20 00	00 00 00 00 00+
+   2109		  C8 00	00 00 00 00 00+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 38
+bmanager.asm
+
+
+
+   2110		  00 00	00 D4 8D 8D 8D+
+   2111		  8D 8D	00 00 00 00 00+
+   2112		  00 00	BF BF BF 00 00+
+   2113		  00 00	00 00 00 00 00+
+   2114		  00 00
+2  2115	    1F34  A0 A0	A0 A0 A0 A0 00+			 db									    +
+   2116		  00 A0	A0 A0 A0 00 00+	 "††††††  ††††     —»         ‘ —»         øøøøøøøøøøøøø†      † ††††    ”—»»»»»»»»»»»”—"
+   2117		  00 00	00 D1 C8 00 00+
+   2118		  00 00	00 00 00 00 00+
+   2119		  D4 00	D1 C8 00 00 00+
+   2120		  00 00	00 00 00 00 BF+
+   2121		  BF BF	BF BF BF BF BF+
+   2122		  BF BF	BF BF BF A0 00+
+   2123		  00 00	00 00 00 A0 00+
+   2124		  A0 A0	A0 A0 00 00 00+
+   2125		  00 D3	D1 C8 C8 C8 C8+
+   2126		  C8 C8	C8 C8 C8 C8 C8+
+   2127		  D3 D1
+2  2128	    1F8A  C8 00	00 00 00 00 00+			 db									    +
+   2129		  00 00	00 00 BF BF BF+	 "»          øøøøøøøøøøøø†      † ††††   ‘”———————çççççç—»           øøøøøøøøøøø †††††† "
+   2130		  BF BF	BF BF BF BF BF+
+   2131		  BF BF	A0 00 00 00 00+
+   2132		  00 00	A0 00 A0 A0 A0+
+   2133		  A0 00	00 00 D4 D3 D1+
+   2134		  D1 D1	D1 D1 D1 D1 8D+
+   2135		  8D 8D	8D 8D 8D D1 C8+
+   2136		  00 00	00 00 00 00 00+
+   2137		  00 00	00 00 BF BF BF+
+   2138		  BF BF	BF BF BF BF BF+
+   2139		  BF 00	A0 A0 A0 A0 A0+
+   2140		  A0 00
+2  2141	    1FE0  00 A4	A4 A4 A4 00 00+			 db									    +
+   2142		  00 D4	D3 D3 D3 D3 D3+	 " §§§§   ‘””””””””çççççç—»                               ®®®®   ‘‘‘‘‘‘‘‘‘çç‘‘‘”—»     ç"
+   2143		  D3 D3	D3 8D 8D 8D 8D+
+   2144		  8D 8D	D1 C8 00 00 00+
+   2145		  00 00	00 00 00 00 00+
+   2146		  00 00	00 00 00 00 00+
+   2147		  00 00	00 00 00 00 00+
+   2148		  00 00	00 00 00 00 00+
+   2149		  A8 A8	A8 A8 00 00 00+
+   2150		  D4 D4	D4 D4 D4 D4 D4+
+   2151		  D4 D4	8D 8D D4 D4 D4+
+   2152		  D3 D1	C8 00 00 00 00+
+   2153		  00 8D
+2  2154	    2036  8D 00	00 00 00 00 00+			 db									    +
+   2155		  00 00	00 00 00 00 00+	 "ç                        ®®®®   ‘‘‘‘‘‘‘‘‘çç‘‘‘”—»     çç       øøøøøø           ®®®®  "
+   2156		  00 00	00 00 00 00 00+
+   2157		  00 00	00 00 A8 A8 A8+
+   2158		  A8 00	00 00 D4 D4 D4+
+   2159		  D4 D4	D4 D4 D4 D4 8D+
+   2160		  8D D4	D4 D4 D3 D1 C8+
+   2161		  00 00	00 00 00 8D 8D+
+   2162		  00 00	00 00 00 00 00+
+   2163		  BF BF	BF BF BF BF 00+
+   2164		  00 00	00 00 00 00 00+
+   2165		  00 00	00 A8 A8 A8 A8+
+   2166		  00 00
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 39
+bmanager.asm
+
+
+
+2  2167	    208C  00 D4	D4 D4 D4 D4 D4+			 db									    +
+   2168		  D4 D4	D4 8D 8D D4 D4+	 " ‘‘‘‘‘‘‘‘‘çç‘‘‘”—»     çç     øøøøøøøøø          ®®®®   ‘”—» —‘””ççççççççççççççç    øø"
+   2169		  D4 D3	D1 C8 00 00 00+
+   2170		  00 00	8D 8D 00 00 00+
+   2171		  00 00	BF BF BF BF BF+
+   2172		  BF BF	BF BF 00 00 00+
+   2173		  00 00	00 00 00 00 00+
+   2174		  A8 A8	A8 A8 00 00 00+
+   2175		  D4 D3	D1 C8 00 D1 D4+
+   2176		  D3 D3	8D 8D 8D 8D 8D+
+   2177		  8D 8D	8D 8D 8D 8D 8D+
+   2178		  8D 8D	8D 00 00 00 00+
+   2179		  BF BF
+2  2180	    20E2  BF BF	BF BF BF BF BF+			 db									    +
+   2181		  BF BF	00 00 00 00 00+	 "øøøøøøøøø         ®®®®   ‘”—»”‘‘‘”ççççççççççççççç   øøøø     øøøø        ∞∞∞∞   ‘”—‘‘‘"
+   2182		  00 00	00 00 A8 A8 A8+
+   2183		  A8 00	00 00 D4 D3 D1+
+   2184		  C8 D3	D4 D4 D4 D3 8D+
+   2185		  8D 8D	8D 8D 8D 8D 8D+
+   2186		  8D 8D	8D 8D 8D 8D 8D+
+   2187		  00 00	00 BF BF BF BF+
+   2188		  00 00	00 00 00 BF BF+
+   2189		  BF BF	00 00 00 00 00+
+   2190		  00 00	00 B0 B0 B0 B0+
+   2191		  00 00	00 D4 D3 D1 D4+
+   2192		  D4 D4
+2  2193	    2138  D4 D4	D4 8D 8D 00 00+			 db									    +
+   2194		  D4 D3	D1 C8 00 00 00+	 "‘‘‘çç  ‘”—»     çç  øøøø       øøø        ∞∞∞∞   ‘””———   çç  ‘”—      çç  øøø        "
+   2195		  00 00	8D 8D 00 00 BF+
+   2196		  BF BF	BF 00 00 00 00+
+   2197		  00 00	00 BF BF BF 00+
+   2198		  00 00	00 00 00 00 00+
+   2199		  B0 B0	B0 B0 00 00 00+
+   2200		  D4 D3	D3 D1 D1 D1 00+
+   2201		  00 00	8D 8D 00 00 D4+
+   2202		  D3 D1	00 00 00 00 00+
+   2203		  00 8D	8D 00 00 BF BF+
+   2204		  BF 00	00 00 00 00 00+
+   2205		  00 00
+2  2206	    218E  BF BF	BF 00 00 00 00+			 db									    +
+   2207		  00 00	00 00 B0 B0 B0+	 "øøø        ∞∞∞∞   ‘‘”””    çç —‘”       çç  øøø        øøø        ∞∞∞∞   ‘‘‘‘     çççç"
+   2208		  B0 00	00 00 D4 D4 D3+
+   2209		  D3 D3	00 00 00 00 8D+
+   2210		  8D 00	D1 D4 D3 00 00+
+   2211		  00 00	00 00 00 8D 8D+
+   2212		  00 00	BF BF BF 00 00+
+   2213		  00 00	00 00 00 00 BF+
+   2214		  BF BF	00 00 00 00 00+
+   2215		  00 00	00 B0 B0 B0 B0+
+   2216		  00 00	00 D4 D4 D4 D4+
+   2217		  00 00	00 00 00 8D 8D+
+   2218		  8D 8D
+2  2219	    21E4  8D 8D	00 C8 00 00 00+			 db									    +
+   2220		  00 00	00 00 00 00 BF+	 "çç »         øøø       øøøø        ∞∞∞∞     —»     çççççç—»         øøøøøøøøøøøøø     "
+   2221		  BF BF	00 00 00 00 00+
+   2222		  00 00	BF BF BF BF 00+
+   2223		  00 00	00 00 00 00 00+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 40
+bmanager.asm
+
+
+
+   2224		  B0 B0	B0 B0 00 00 00+
+   2225		  00 00	D1 C8 00 00 00+
+   2226		  00 00	8D 8D 8D 8D 8D+
+   2227		  8D D1	C8 00 00 00 00+
+   2228		  00 00	00 00 00 BF BF+
+   2229		  BF BF	BF BF BF BF BF+
+   2230		  BF BF	BF BF 00 00 00+
+   2231		  00 00
+2  2232	    223A  00 00	00 00 B1 B1 B1+			 db									    +
+   2233		  B1 00	00 00 00 D3 D1+	 "    ±±±±    ”—»»         ”—»          øøøøøøøøøøøøø        ±±±±   ‘”——»»»      ‘”—»   "
+   2234		  C8 C8	00 00 00 00 00+
+   2235		  00 00	00 00 D3 D1 C8+
+   2236		  00 00	00 00 00 00 00+
+   2237		  00 00	00 BF BF BF BF+
+   2238		  BF BF	BF BF BF BF BF+
+   2239		  BF BF	00 00 00 00 00+
+   2240		  00 00	00 B1 B1 B1 B1+
+   2241		  00 00	00 D4 D3 D1 D1+
+   2242		  C8 C8	C8 00 00 00 00+
+   2243		  00 00	D4 D3 D1 C8 00+
+   2244		  00 00
+2  2245	    2290  00 00	00 00 00 00 00+			 db									    +
+   2246		  BF BF	BF BF BF BF BF+	 "       øøøøøøøøøøøøø        ≤≤≤≤   ‘””———»»     ‘”—»                    øøø        ≤≤≤"
+   2247		  BF BF	BF BF BF BF 00+
+   2248		  00 00	00 00 00 00 00+
+   2249		  B2 B2	B2 B2 00 00 00+
+   2250		  D4 D3	D3 D1 D1 D1 C8+
+   2251		  C8 00	00 00 00 00 D4+
+   2252		  D3 D1	C8 00 00 00 00+
+   2253		  00 00	00 00 00 00 00+
+   2254		  00 00	00 00 00 00 00+
+   2255		  00 00	BF BF BF 00 00+
+   2256		  00 00	00 00 00 00 B2+
+   2257		  B2 B2
+2  2258	    22E6  B2 00	00 00 D4 D4 D3+			 db									    +
+   2259		  D3 D3	D1 D1 C8 C8 C8+	 "≤   ‘‘”””——»»»  ‘‘”—                                ≤≤≤≤   ‘‘‘‘””———»»‘‘‘”            "
+   2260		  00 00	D4 D4 D3 D1 00+
+   2261		  00 00	00 00 00 00 00+
+   2262		  00 00	00 00 00 00 00+
+   2263		  00 00	00 00 00 00 00+
+   2264		  00 00	00 00 00 00 00+
+   2265		  00 00	00 B2 B2 B2 B2+
+   2266		  00 00	00 D4 D4 D4 D4+
+   2267		  D3 D3	D1 D1 D1 C8 C8+
+   2268		  D4 D4	D4 D3 00 00 00+
+   2269		  00 00	00 00 00 00 00+
+   2270		  00 00
+2  2271	    233C  00 00	00 00 BF BF BF+			 db									    +
+   2272		  BF BF	BF 00 00 00 00+	 "    øøøøøø      øø   îîîî   ‘‘‘‘‘”””——‘»»‘               øøøøøøøøø     øøø  îîîî   ‘”‘"
+   2273		  00 00	BF BF 00 00 00+
+   2274		  94 94	94 94 00 00 00+
+   2275		  D4 D4	D4 D4 D4 D3 D3+
+   2276		  D3 D1	D1 D4 C8 C8 D4+
+   2277		  00 00	00 00 00 00 00+
+   2278		  00 00	00 00 00 00 00+
+   2279		  00 BF	BF BF BF BF BF+
+   2280		  BF BF	BF 00 00 00 00+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 41
+bmanager.asm
+
+
+
+   2281		  00 BF	BF BF 00 00 94+
+   2282		  94 94	94 00 00 00 D4+
+   2283		  D3 D4
+2  2284	    2392  D4 D4	D4 D4 D3 D3 D4+			 db									    +
+   2285		  D1 D1	C8 C8 00 00 C8+	 "‘‘‘‘””‘——»»  »           øøøøøøøøøøø    øøø  íííí   ‘  »‘‘‘‘‘””——»»—»          øøøø   "
+   2286		  00 00	00 00 00 00 00+
+   2287		  00 00	00 00 BF BF BF+
+   2288		  BF BF	BF BF BF BF BF+
+   2289		  BF 00	00 00 00 BF BF+
+   2290		  BF 00	00 92 92 92 92+
+   2291		  00 00	00 D4 00 00 C8+
+   2292		  D4 D4	D4 D4 D4 D3 D3+
+   2293		  D1 D1	C8 C8 D1 C8 00+
+   2294		  00 00	00 00 00 00 00+
+   2295		  00 00	BF BF BF BF 00+
+   2296		  00 00
+2  2297	    23E8  00 00	BF BF BF BF 00+			 db									    +
+   2298		  00 00	BF BF BF 00 00+	 "  øøøø   øøø  êêêê     —» ‘‘‘‘‘””——”—»         øøøø       øøø   øøø  êêêê    ”—»»‘ ‘‘‘"
+   2299		  90 90	90 90 00 00 00+
+   2300		  00 00	D1 C8 00 D4 D4+
+   2301		  D4 D4	D4 D3 D3 D1 D1+
+   2302		  D3 D1	C8 00 00 00 00+
+   2303		  00 00	00 00 00 BF BF+
+   2304		  BF BF	00 00 00 00 00+
+   2305		  00 00	BF BF BF 00 00+
+   2306		  00 BF	BF BF 00 00 90+
+   2307		  90 90	90 00 00 00 00+
+   2308		  D3 D1	C8 C8 D4 00 D4+
+   2309		  D4 D4
+2  2310	    243E  D4 D3	D3 D4 D3 D1 C8+			 db									    +
+   2311		  00 00	00 00 00 00 00+	 "‘””‘”—»         øøø        øøø   øøø  åååå   ‘”——‘   ‘‘‘‘‘‘”—»         øøø        øøø "
+   2312		  00 00	BF BF BF 00 00+
+   2313		  00 00	00 00 00 00 BF+
+   2314		  BF BF	00 00 00 BF BF+
+   2315		  BF 00	00 8C 8C 8C 8C+
+   2316		  00 00	00 D4 D3 D1 D1+
+   2317		  D4 00	00 00 D4 D4 D4+
+   2318		  D4 D4	D4 D3 D1 C8 00+
+   2319		  00 00	00 00 00 00 00+
+   2320		  00 BF	BF BF 00 00 00+
+   2321		  00 00	00 00 00 BF BF+
+   2322		  BF 00
+2  2323	    2494  00 00	BF BF BF 00 00+			 db									    +
+   2324		  8B 8B	8B 8B 00 00 00+	 "  øøø  ãããã   ‘””‘      ‘‘‘‘”—»         øøø       øøø  øøøø   ãããã   ‘‘‘»       ‘‘‘”— "
+   2325		  D4 D3	D3 D4 00 00 00+
+   2326		  00 00	00 D4 D4 D4 D4+
+   2327		  D3 D1	C8 00 00 00 00+
+   2328		  00 00	00 00 00 BF BF+
+   2329		  BF 00	00 00 00 00 00+
+   2330		  00 BF	BF BF 00 00 BF+
+   2331		  BF BF	BF 00 00 00 8B+
+   2332		  8B 8B	8B 00 00 00 D4+
+   2333		  D4 D4	C8 00 00 00 00+
+   2334		  00 00	00 D4 D4 D4 D3+
+   2335		  D1 00
+2  2336	    24EA  00 00	00 00 00 00 00+			 db									    +
+   2337		  00 00	BF BF BF 00 00+	 "         øøø    øøøøøøøøøøøø   ––––   ‘‘—         ‘‘”           øøøøøøøøøøøøøøøøøø    "
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 42
+bmanager.asm
+
+
+
+   2338		  00 00	BF BF BF BF BF+
+   2339		  BF BF	BF BF BF BF BF+
+   2340		  00 00	00 D0 D0 D0 D0+
+   2341		  00 00	00 D4 D4 D1 00+
+   2342		  00 00	00 00 00 00 00+
+   2343		  00 D4	D4 D3 00 00 00+
+   2344		  00 00	00 00 00 00 00+
+   2345		  00 BF	BF BF BF BF BF+
+   2346		  BF BF	BF BF BF BF BF+
+   2347		  BF BF	BF BF BF 00 00+
+   2348		  00 00
+2  2349	    2540  D0 D0	D0 D0 00 00 00+			 db									    +
+   2350		  D4 D3	00 00 00 00 00+	 "––––   ‘”           ‘             øøøøøøøøøøøøøøø      ––––   ‘                       "
+   2351		  00 00	00 00 00 00 D4+
+   2352		  00 00	00 00 00 00 00+
+   2353		  00 00	00 00 00 00 BF+
+   2354		  BF BF	BF BF BF BF BF+
+   2355		  BF BF	BF BF BF BF BF+
+   2356		  00 00	00 00 00 00 D0+
+   2357		  D0 D0	D0 00 00 00 D4+
+   2358		  00 00	00 00 00 00 00+
+   2359		  00 00	00 00 00 00 00+
+   2360		  00 00	00 00 00 00 00+
+   2361		  00 00
+2  2362	    2596  00 00	00 00 BF BF BF+			 db									    +
+   2363		  BF 00	00 00 00 00 00+	 "    øøøø                ––––                                                   ––––   "
+   2364		  00 00	00 00 00 00 00+
+   2365		  00 00	00 D0 D0 D0 D0+
+   2366		  00 00	00 00 00 00 00+
+   2367		  00 00	00 00 00 00 00+
+   2368		  00 00	00 00 00 00 00+
+   2369		  00 00	00 00 00 00 00+
+   2370		  00 00	00 00 00 00 00+
+   2371		  00 00	00 00 00 00 00+
+   2372		  00 00	00 00 00 00 00+
+   2373		  00 00	D0 D0 D0 D0 00+
+   2374		  00 00
+2  2375	    25EC  00 00	00 00 00 00 00+			 db									    +
+   2376		  00 00	00 00 00 00 00+	 "                                                ––––                                  "
+   2377		  00 00	00 00 00 00 00+
+   2378		  00 00	00 00 00 00 00+
+   2379		  00 00	00 00 00 00 00+
+   2380		  00 00	00 00 00 00 00+
+   2381		  00 00	00 00 00 00 D0+
+   2382		  D0 D0	D0 00 00 00 00+
+   2383		  00 00	00 00 00 00 00+
+   2384		  00 00	00 00 00 00 00+
+   2385		  00 00	00 00 00 00 00+
+   2386		  00 00	00 00 00 00 00+
+   2387		  00 00
+2  2388	    2642  BF BF	BF BF BF BF 00+			 db									    +
+   2389		  00 00	00 00 00 00 00+	 "øøøøøø           ––––                               øøøøøøøøøø          ––––          "
+   2390		  00 00	00 D0 D0 D0 D0+
+   2391		  00 00	00 00 00 00 00+
+   2392		  00 00	00 00 00 00 00+
+   2393		  00 00	00 00 00 00 00+
+   2394		  00 00	00 00 00 00 00+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 43
+bmanager.asm
+
+
+
+   2395		  00 00	00 BF BF BF BF+
+   2396		  BF BF	BF BF BF BF 00+
+   2397		  00 00	00 00 00 00 00+
+   2398		  00 00	D0 D0 D0 D0 00+
+   2399		  00 00	00 00 00 00 00+
+   2400		  00 00
+2  2401	    2698  00 00	00 00 00 00 00+			 db									    +
+   2402		  00 00	00 00 00 00 00+	 "                    øøøøøøøøøøøø         –––– ‡     ‡                      øøøø øøø øø"
+   2403		  00 00	00 00 00 00 BF+
+   2404		  BF BF	BF BF BF BF BF+
+   2405		  BF BF	BF BF 00 00 00+
+   2406		  00 00	00 00 00 00 D0+
+   2407		  D0 D0	D0 00 E0 00 00+
+   2408		  00 00	00 E0 00 00 00+
+   2409		  00 00	00 00 00 00 00+
+   2410		  00 00	00 00 00 00 00+
+   2411		  00 00	00 00 00 BF BF+
+   2412		  BF BF	00 BF BF BF 00+
+   2413		  BF BF
+2  2414	    26EE  BF 00	00 00 00 00 00+			 db									    +
+   2415		  00 00	00 D0 D0 D0 D0+	 "ø         ––––‡‡‡‡‡‡‡‡                     øøø  øøø   øøø        ––––       ‡         "
+   2416		  E0 E0	E0 E0 E0 E0 E0+
+   2417		  E0 00	00 00 00 00 00+
+   2418		  00 00	00 00 00 00 00+
+   2419		  00 00	00 00 00 00 00+
+   2420		  00 BF	BF BF 00 00 BF+
+   2421		  BF BF	00 00 00 BF BF+
+   2422		  BF 00	00 00 00 00 00+
+   2423		  00 00	D0 D0 D0 D0 00+
+   2424		  00 00	00 00 00 00 E0+
+   2425		  00 00	00 00 00 00 00+
+   2426		  00 00
+2  2427	    2744  00 00	00 00 00 00 00+			 db									    +
+   2428		  00 00	00 00 00 BF BF+	 "            øøø  øøø   øøø        ––––                             øøø øøø    øøø     "
+   2429		  BF 00	00 BF BF BF 00+
+   2430		  00 00	BF BF BF 00 00+
+   2431		  00 00	00 00 00 00 D0+
+   2432		  D0 D0	D0 00 00 00 00+
+   2433		  00 00	00 00 00 00 00+
+   2434		  00 00	00 00 00 00 00+
+   2435		  00 00	00 00 00 00 00+
+   2436		  00 00	00 00 BF BF BF+
+   2437		  00 BF	BF BF 00 00 00+
+   2438		  00 BF	BF BF 00 00 00+
+   2439		  00 00
+2  2440	    279A  00 00	00 C8 C8 C8 C8+			 db									    +
+   2441		  00 00	00 00 00 00 00+	 "   »»»»                             øøø øøø    øøø        ƒƒƒƒ ‡‡‡   ‡                "
+   2442		  00 00	00 00 00 00 00+
+   2443		  00 00	00 00 00 00 00+
+   2444		  00 00	00 00 00 00 00+
+   2445		  00 BF	BF BF 00 BF BF+
+   2446		  BF 00	00 00 00 BF BF+
+   2447		  BF 00	00 00 00 00 00+
+   2448		  00 00	C4 C4 C4 C4 00+
+   2449		  E0 E0	E0 00 00 00 E0+
+   2450		  00 00	00 00 00 00 00+
+   2451		  00 00	00 00 00 00 00+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 44
+bmanager.asm
+
+
+
+   2452		  00 00
+2  2453	    27F0  00 00	00 00 00 BF BF+			 db									    +
+   2454		  BF BF	BF BF 00 00 00+	 "     øøøøøø     øøø        »»»»‡   ‡ ‡‡                      øøøøø    øøøø        ¿¿¿¿"
+   2455		  00 00	BF BF BF 00 00+
+   2456		  00 00	00 00 00 00 C8+
+   2457		  C8 C8	C8 E0 00 00 00+
+   2458		  E0 00	E0 E0 00 00 00+
+   2459		  00 00	00 00 00 00 00+
+   2460		  00 00	00 00 00 00 00+
+   2461		  00 00	00 00 00 BF BF+
+   2462		  BF BF	BF 00 00 00 00+
+   2463		  BF BF	BF BF 00 00 00+
+   2464		  00 00	00 00 00 C0 C0+
+   2465		  C0 C0
+2  2466	    2846  E0 00	00 00 E0 E0 E0+			 db									    +
+   2467		  00 00	00 00 00 00 00+	 "‡   ‡‡‡                        øøø     øøø         ¿¿¿¿ ‡‡‡‡                          "
+   2468		  00 00	00 00 00 00 00+
+   2469		  00 00	00 00 00 00 00+
+   2470		  00 00	00 BF BF BF 00+
+   2471		  00 00	00 00 BF BF BF+
+   2472		  00 00	00 00 00 00 00+
+   2473		  00 00	C0 C0 C0 C0 00+
+   2474		  E0 E0	E0 E0 00 00 00+
+   2475		  00 00	00 00 00 00 00+
+   2476		  00 00	00 00 00 00 00+
+   2477		  00 00	00 00 00 00 00+
+   2478		  00 00
+2  2479	    289C  00 00	00 00 00 00 00+			 db									    +
+   2480		  00 BF	BF 00 00 00 00+	 "        øø          ¿¿¿¿                                                   ????       "
+   2481		  00 00	00 00 00 00 C0+
+   2482		  C0 C0	C0 00 00 00 00+
+   2483		  00 00	00 00 00 00 00+
+   2484		  00 00	00 00 00 00 00+
+   2485		  00 00	00 00 00 00 00+
+   2486		  00 00	00 00 00 00 00+
+   2487		  00 00	00 00 00 00 00+
+   2488		  00 00	00 00 00 00 00+
+   2489		  00 00	00 00 00 3F 3F+
+   2490		  3F 3F	00 00 00 00 00+
+   2491		  00 00
+2  2492	    28F2  00 00	00 00 00 00 00+			 db									    +
+   2493		  00 00	00 00 00 00 00+	 "                                            ???? ‡‡‡   ‡                     øøøøøøøøø"
+   2494		  00 00	00 00 00 00 00+
+   2495		  00 00	00 00 00 00 00+
+   2496		  00 00	00 00 00 00 00+
+   2497		  00 00	00 00 00 00 00+
+   2498		  00 00	3F 3F 3F 3F 00+
+   2499		  E0 E0	E0 00 00 00 E0+
+   2500		  00 00	00 00 00 00 00+
+   2501		  00 00	00 00 00 00 00+
+   2502		  00 00	00 00 00 00 00+
+   2503		  BF BF	BF BF BF BF BF+
+   2504		  BF BF
+2  2505	    2948  BF BF	BF BF 00 00 00+			 db									    +
+   2506		  00 00	00 00 00 00 DC+	 "øøøø         ‹‹‹‹‡   ‡ ‡‡                     øøøøøøøøøøøøøø        ››››‡   ‡‡‡       "
+   2507		  DC DC	DC E0 00 00 00+
+   2508		  E0 00	E0 E0 00 00 00+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 45
+bmanager.asm
+
+
+
+   2509		  00 00	00 00 00 00 00+
+   2510		  00 00	00 00 00 00 00+
+   2511		  00 00	00 00 BF BF BF+
+   2512		  BF BF	BF BF BF BF BF+
+   2513		  BF BF	BF BF 00 00 00+
+   2514		  00 00	00 00 00 DD DD+
+   2515		  DD DD	E0 00 00 00 E0+
+   2516		  E0 E0	00 00 00 00 00+
+   2517		  00 00
+2  2518	    299E  00 00	00 00 00 00 00+			 db									    +
+   2519		  00 00	00 00 00 00 00+	 "               øøøøøøøøøøøøø         ›››› ‡‡‡‡                         øøøø           "
+   2520		  00 BF	BF BF BF BF BF+
+   2521		  BF BF	BF BF BF BF BF+
+   2522		  00 00	00 00 00 00 00+
+   2523		  00 00	DD DD DD DD 00+
+   2524		  E0 E0	E0 E0 00 00 00+
+   2525		  00 00	00 00 00 00 00+
+   2526		  00 00	00 00 00 00 00+
+   2527		  00 00	00 00 00 00 00+
+   2528		  00 BF	BF BF BF 00 00+
+   2529		  00 00	00 00 00 00 00+
+   2530		  00 00
+2  2531	    29F4  00 00	00 00 00 00 DE+			 db									    +
+   2532		  DE DE	DE 00 00 00 00+	 "      ﬁﬁﬁﬁ                              øøø                  ﬁﬁﬁﬁ                     "
+   2533		  00 00	00 00 00 00 00+
+   2534		  00 00	00 00 00 00 00+
+   2535		  00 00	00 00 00 00 00+
+   2536		  00 00	00 00 00 BF BF+
+   2537		  BF 00	00 00 00 00 00+
+   2538		  00 00	00 00 00 00 00+
+   2539		  00 00	00 00 00 DE DE+
+   2540		  DE DE	00 00 00 00 00+
+   2541		  00 00	00 00 00 00 00+
+   2542		  00 00	00 00 00 00 00+
+   2543		  00 00
+2  2544	    2A4A  00 00	00 00 00 00 00+			 db									    +
+   2545		  00 BF	BF BF 00 00 00+	 "        øøø                   ‡‡‡‡ ‡‡ ‡‡‡                      øøø                   ‡"
+   2546		  00 00	00 00 00 00 00+
+   2547		  00 00	00 00 00 00 00+
+   2548		  00 00	E0 E0 E0 E0 00+
+   2549		  E0 E0	00 E0 E0 E0 00+
+   2550		  00 00	00 00 00 00 00+
+   2551		  00 00	00 00 00 00 00+
+   2552		  00 00	00 00 00 00 00+
+   2553		  BF BF	BF 00 00 00 00+
+   2554		  00 00	00 00 00 00 00+
+   2555		  00 00	00 00 00 00 00+
+   2556		  00 E0
+2  2557	    2AA0  E0 E0	E0 E0 00 00 E0+			 db									    +
+   2558		  00 00	00 E0 00 00 00+	 "‡‡‡‡  ‡   ‡                     øøøøøø                ‡‡‡‡‡  ‡   ‡                    "
+   2559		  00 00	00 00 00 00 00+
+   2560		  00 00	00 00 00 00 00+
+   2561		  00 00	00 00 BF BF BF+
+   2562		  BF BF	BF 00 00 00 00+
+   2563		  00 00	00 00 00 00 00+
+   2564		  00 00	00 00 00 E0 E0+
+   2565		  E0 E0	E0 00 00 E0 00+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 46
+bmanager.asm
+
+
+
+   2566		  00 00	E0 00 00 00 00+
+   2567		  00 00	00 00 00 00 00+
+   2568		  00 00	00 00 00 00 00+
+   2569		  00 00
+2  2570	    2AF6  00 BF	BF BF BF BF BF+			 db									    +
+   2571		  00 00	00 00 00 00 00+	 " øøøøøø                 ‡‡ ‡‡‡                       øøøøø                "
+   2572		  00 00	00 00 00 00 00+
+   2573		  00 00	F0 F0 F0 F0 00+
+   2574		  E0 E0	00 E0 E0 E0 00+
+   2575		  00 00	00 00 00 00 00+
+   2576		  00 00	00 00 00 00 00+
+   2577		  00 00	00 00 00 00 00+
+   2578		  00 BF	BF BF BF BF 00+
+   2579		  00 00	00 00 00 00 00+
+   2580		  00 00	00 00 00 00 00+
+   2581		  00 F0	F0 F0 F0
+2  2582
+1  2583					 include STD_VDR.inc
+2  2584	    2B48  00 00	00 00 00 01 01+	 V_DAC_STD:	 db	 00H,00H,00H,00H,00H,01H,01H,01H,03H,01H,02H,05H,02H,02H,07H,02H,   +
+   2585		  01 03	01 02 05 02 02+	 03H,09H,03H,04H,0BH,03H,04H,0CH,04H,05H,0EH,04H,06H,10H,05H,06H,12H,05H,07H,14H
+   2586		  07 02	03 09 03 04 0B+
+   2587		  03 04	0C 04 05 0E 04+
+   2588		  06 10	05 06 12 05 07+
+   2589		  14
+2  2590	    2B6C  06 08	15 06 08 17 07+			 db	 06H,08H,15H,06H,08H,17H,07H,09H,19H,07H,0AH,1BH,08H,0AH,1DH,09H,   +
+   2591		  09 19	07 0A 1B 08 0A+	 0CH,1CH,09H,0EH,1BH,0AH,10H,1AH,0BH,12H,19H,0CH,14H,18H,0DH,16H,17H,0DH,18H,17H
+   2592		  1D 09	0C 1C 09 0E 1B+
+   2593		  0A 10	1A 0B 12 19 0C+
+   2594		  14 18	0D 16 17 0D 18+
+   2595		  17
+2  2596	    2B90  0E 1A	16 0F 1C 15 10+			 db	 0EH,1AH,16H,0FH,1CH,15H,10H,1EH,14H,11H,20H,13H,11H,22H,12H,12H,   +
+   2597		  1E 14	11 20 13 11 22+	 24H,11H,13H,26H,11H,14H,28H,10H,15H,2AH,0FH,16H,2AH,11H,17H,2BH,13H,18H,2BH,16H
+   2598		  12 12	24 11 13 26 11+
+   2599		  14 28	10 15 2A 0F 16+
+   2600		  2A 11	17 2B 13 18 2B+
+   2601		  16
+2  2602	    2BB4  19 2C	18 1A 2C 1A 1B+			 db	 19H,2CH,18H,1AH,2CH,1AH,1BH,2DH,1CH,1CH,2DH,1FH,1DH,2EH,21H,1EH,   +
+   2603		  2D 1C	1C 2D 1F 1D 2E+	 2FH,23H,1FH,2FH,26H,20H,30H,28H,21H,30H,2AH,22H,31H,2CH,23H,31H,2FH,24H,32H,31H
+   2604		  21 1E	2F 23 1F 2F 26+
+   2605		  20 30	28 21 30 2A 22+
+   2606		  31 2C	23 31 2F 24 32+
+   2607		  31
+2  2608	    2BD8  25 32	33 26 30 30 27+			 db	 25H,32H,33H,26H,30H,30H,27H,2DH,2DH,28H,2BH,2AH,28H,28H,27H,29H,   +
+   2609		  2D 2D	28 2B 2A 28 28+	 26H,25H,2AH,23H,22H,2BH,21H,1FH,2CH,1EH,1CH,2DH,1BH,19H,2EH,19H,16H,2FH,16H,13H
+   2610		  27 29	26 25 2A 23 22+
+   2611		  2B 21	1F 2C 1E 1C 2D+
+   2612		  1B 19	2E 19 16 2F 16+
+   2613		  13
+2  2614	    2BFC  2F 14	10 30 11 0D 31+			 db	 2FH,14H,10H,30H,11H,0DH,31H,0FH,0AH,32H,0CH,07H,33H,0AH,04H,32H,   +
+   2615		  0F 0A	32 0C 07 33 0A+	 0AH,06H,31H,0BH,08H,2FH,0CH,0AH,2EH,0DH,0CH,2DH,0DH,0EH,2CH,0EH,10H,2BH,0FH,12H
+   2616		  04 32	0A 06 31 0B 08+
+   2617		  2F 0C	0A 2E 0D 0C 2D+
+   2618		  0D 0E	2C 0E 10 2B 0F+
+   2619		  12
+2  2620	    2C20  2A 10	14 28 11 16 27+			 db	 2AH,10H,14H,28H,11H,16H,27H,11H,18H,26H,12H,1AH,25H,13H,1CH,24H,   +
+   2621		  11 18	26 12 1A 25 13+	 14H,1EH,22H,14H,20H,21H,15H,22H,20H,16H,24H,21H,16H,22H,21H,17H,20H,22H,17H,1DH
+   2622		  1C 24	14 1E 22 14 20+
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 47
+bmanager.asm
+
+
+
+   2623		  21 15	22 20 16 24 21+
+   2624		  16 22	21 17 20 22 17+
+   2625		  1D
+2  2626	    2C44  22 17	1B 22 18 19 23+			 db	 22H,17H,1BH,22H,18H,19H,23H,18H,17H,23H,19H,14H,24H,19H,12H,24H,   +
+   2627		  18 17	23 19 14 24 19+	 19H,10H,25H,1AH,0DH,25H,1AH,0BH,26H,1AH,09H,26H,1BH,07H,27H,1BH,04H,27H,1CH,02H
+   2628		  12 24	19 10 25 1A 0D+
+   2629		  25 1A	0B 26 1A 09 26+
+   2630		  1B 07	27 1B 04 27 1C+
+   2631		  02
+2  2632	    2C68  28 1C	00 29 1E 03 2A+			 db	 28H,1CH,00H,29H,1EH,03H,2AH,20H,07H,2BH,21H,0AH,2CH,23H,0EH,2DH,   +
+   2633		  20 07	2B 21 0A 2C 23+	 25H,12H,2EH,27H,15H,2FH,29H,19H,30H,2BH,1CH,31H,2CH,20H,33H,2EH,24H,34H,30H,27H
+   2634		  0E 2D	25 12 2E 27 15+
+   2635		  2F 29	19 30 2B 1C 31+
+   2636		  2C 20	33 2E 24 34 30+
+   2637		  27
+2  2638	    2C8C  35 32	2B 36 34 2E 37+			 db	 35H,32H,2BH,36H,34H,2EH,37H,35H,32H,38H,37H,36H,39H,39H,39H,38H,   +
+   2639		  35 32	38 37 36 39 39+	 38H,38H,36H,36H,36H,34H,34H,34H,33H,33H,33H,31H,31H,31H,30H,30H,30H,2EH,2EH,2EH
+   2640		  39 38	38 38 36 36 36+
+   2641		  34 34	34 33 33 33 31+
+   2642		  31 31	30 30 30 2E 2E+
+   2643		  2E
+2  2644	    2CB0  2C 2C	2C 2B 2B 2B 29+			 db	 2CH,2CH,2CH,2BH,2BH,2BH,29H,29H,29H,28H,28H,28H,26H,26H,26H,24H,   +
+   2645		  29 29	28 28 28 26 26+	 24H,24H,23H,23H,23H,21H,21H,21H,20H,20H,20H,1EH,1EH,22H,1CH,1CH,24H,1AH,1AH,26H
+   2646		  26 24	24 24 23 23 23+
+   2647		  21 21	21 20 20 20 1E+
+   2648		  1E 22	1C 1C 24 1A 1A+
+   2649		  26
+2  2650	    2CD4  18 18	28 16 16 2A 14+			 db	 18H,18H,28H,16H,16H,2AH,14H,14H,2CH,12H,12H,2EH,10H,10H,30H,0EH,   +
+   2651		  14 2C	12 12 2E 10 10+	 0EH,31H,0CH,0CH,33H,0AH,0AH,35H,08H,08H,37H,06H,06H,39H,04H,04H,3BH,02H,02H,3DH
+   2652		  30 0E	0E 31 0C 0C 33+
+   2653		  0A 0A	35 08 08 37 06+
+   2654		  06 39	04 04 3B 02 02+
+   2655		  3D
+2  2656	    2CF8  00 00	3F 00 04 3B 00+			 db	 00H,00H,3FH,00H,04H,3BH,00H,08H,37H,00H,0CH,33H,00H,10H,2FH,00H,   +
+   2657		  08 37	00 0C 33 00 10+	 14H,2BH,00H,18H,27H,00H,1CH,23H,00H,20H,20H,00H,23H,1CH,00H,27H,18H,00H,2BH,14H
+   2658		  2F 00	14 2B 00 18 27+
+   2659		  00 1C	23 00 20 20 00+
+   2660		  23 1C	00 27 18 00 2B+
+   2661		  14
+2  2662	    2D1C  00 2F	10 00 33 0C 00+			 db	 00H,2FH,10H,00H,33H,0CH,00H,37H,08H,00H,3BH,04H,00H,3FH,00H,00H,   +
+   2663		  37 08	00 3B 04 00 3F+	 3FH,04H,00H,3FH,08H,00H,3FH,0CH,00H,3FH,10H,00H,3FH,14H,00H,3FH,18H,00H,3FH,1CH
+   2664		  00 00	3F 04 00 3F 08+
+   2665		  00 3F	0C 00 3F 10 00+
+   2666		  3F 14	00 3F 18 00 3F+
+   2667		  1C
+2  2668	    2D40  00 3F	20 00 3F 23 00+			 db	 00H,3FH,20H,00H,3FH,23H,00H,3FH,27H,00H,3FH,2BH,00H,3FH,2FH,00H,   +
+   2669		  3F 27	00 3F 2B 00 3F+	 3FH,33H,00H,3FH,37H,00H,3FH,3BH,00H,3FH,3FH,04H,3BH,3BH,08H,37H,37H,0CH,33H,33H
+   2670		  2F 00	3F 33 00 3F 37+
+   2671		  00 3F	3B 00 3F 3F 04+
+   2672		  3B 3B	08 37 37 0C 33+
+   2673		  33
+2  2674	    2D64  10 2F	2F 14 2B 2B 18+			 db	 10H,2FH,2FH,14H,2BH,2BH,18H,27H,27H,1CH,23H,23H,20H,20H,20H,23H,   +
+   2675		  27 27	1C 23 23 20 20+	 1CH,1CH,27H,18H,18H,2BH,14H,14H,2FH,10H,10H,33H,0CH,0CH,37H,08H,08H,3BH,04H,04H
+   2676		  20 23	1C 1C 27 18 18+
+   2677		  2B 14	14 2F 10 10 33+
+   2678		  0C 0C	37 08 08 3B 04+
+   2679		  04
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 48
+bmanager.asm
+
+
+
+2  2680	    2D88  3F 00	00 3F 00 04 3F+			 db	 3FH,00H,00H,3FH,00H,04H,3FH,00H,08H,3FH,00H,0CH,3FH,00H,10H,3FH,   +
+   2681		  00 08	3F 00 0C 3F 00+	 00H,14H,3FH,00H,18H,3FH,00H,1CH,3FH,00H,20H,3FH,00H,23H,3FH,00H,27H,3FH,00H,2BH
+   2682		  10 3F	00 14 3F 00 18+
+   2683		  3F 00	1C 3F 00 20 3F+
+   2684		  00 23	3F 00 27 3F 00+
+   2685		  2B
+2  2686	    2DAC  3F 00	2F 3F 00 33 3F+			 db	 3FH,00H,2FH,3FH,00H,33H,3FH,00H,37H,3FH,00H,3BH,3FH,00H,3FH,3FH,   +
+   2687		  00 37	3F 00 3B 3F 00+	 04H,3BH,3FH,08H,37H,3FH,0CH,33H,3FH,10H,2FH,3FH,14H,2BH,3FH,18H,27H,3FH,1CH,23H
+   2688		  3F 3F	04 3B 3F 08 37+
+   2689		  3F 0C	33 3F 10 2F 3F+
+   2690		  14 2B	3F 18 27 3F 1C+
+   2691		  23
+2  2692	    2DD0  3F 20	20 3F 23 1C 3F+			 db	 3FH,20H,20H,3FH,23H,1CH,3FH,27H,18H,3FH,2BH,14H,3FH,2FH,10H,3FH,   +
+   2693		  27 18	3F 2B 14 3F 2F+	 33H,0CH,3FH,37H,08H,3FH,3BH,04H,3FH,3FH,00H,3FH,3FH,04H,3FH,3FH,08H,3FH,3FH,0CH
+   2694		  10 3F	33 0C 3F 37 08+
+   2695		  3F 3B	04 3F 3F 00 3F+
+   2696		  3F 04	3F 3F 08 3F 3F+
+   2697		  0C
+2  2698	    2DF4  3F 3F	10 3F 3F 14 3F+			 db	 3FH,3FH,10H,3FH,3FH,14H,3FH,3FH,18H,3FH,3FH,1CH,3FH,3FH,20H,3FH,   +
+   2699		  3F 18	3F 3F 1C 3F 3F+	 3FH,23H,3FH,3FH,27H,3FH,3FH,2BH,3FH,3FH,2FH,3FH,3FH,33H,3FH,3FH,37H,3FH,3FH,3BH
+   2700		  20 3F	3F 23 3F 3F 27+
+   2701		  3F 3F	2B 3F 3F 2F 3F+
+   2702		  3F 33	3F 3F 37 3F 3F+
+   2703		  3B
+2  2704	    2E18  3F 3F	3F 3B 3B 3B 37+			 db	 3FH,3FH,3FH,3BH,3BH,3BH,37H,37H,37H,33H,33H,33H,2EH,2EH,2EH,2AH,   +
+   2705		  37 37	33 33 33 2E 2E+	 2AH,2AH,26H,26H,26H,22H,22H,22H,1DH,1DH,1DH,19H,19H,19H,15H,15H,15H,11H,11H,11H
+   2706		  2E 2A	2A 2A 26 26 26+
+   2707		  22 22	22 1D 1D 1D 19+
+   2708		  19 19	15 15 15 11 11+
+   2709		  11
+2  2710	    2E3C  0C 0C	0C 08 08 08 04+			 db	 0CH,0CH,0CH,08H,08H,08H,04H,04H,04H,00H,00H,00H
+   2711		  04 04	00 00 00
+2  2712
+1  2713
+1  2714	    2E48  0200*(??)		 DiskData	 db	 512 dup(?)
+1  2715	    3048  0200*(??)		 DiskData2	 db	 512 dup(?)
+1  2716
+   2717	    3248			 _TEXT	 ends
+   2718					 END	 @Filename
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 49
+Symbol Table
+
+
+
+
+Symbol Name		Type   Value			   Cref	(defined at #)
+
+??DATE			Text   "16/01/98"		   12
+??FILENAME		Text   "bmanager"		   14
+??TIME			Text   "11:03:23"		   16
+??VERSION		Number 0314			   18
+@CPU			Text   1F9FH			   #3  19
+@CURSEG			Text   _TEXT			   #1
+@FILENAME		Text   BMANAGER			   2718
+@WORDSIZE		Text   4			   #1  #3
+A_1			Near   _TEXT:0747		   711	#728
+A_2			Near   _TEXT:075D		   713	#735
+A_3			Near   _TEXT:0773		   715	#742
+A_4			Near   _TEXT:0789		   717	723  #749
+A_5			Near   _TEXT:079F		   719	#756
+A_6			Near   _TEXT:07B5		   721	#763
+A_7			Near   _TEXT:07CB		   #770
+A_8			Near   _TEXT:07E1		   725	#777
+A_9			Near   _TEXT:07F7		   727	#784
+A__1			Near   _TEXT:095F		   914	#921
+A__2			Near   _TEXT:0968		   916	#924
+A__3			Near   _TEXT:0971		   918	#927
+A__4			Near   _TEXT:097A		   920	#930
+A___			Near   _TEXT:0980		   923	926  929  #932
+BF			Byte   _TEXT:0996		   107	188  860  922  925  928	 931  #953
+BMANAGER		Near   _TEXT:0100		   #5  2718
+CHECKEXTPART		Near   _TEXT:0EBE		   1021	 #1406
+CHECKREC		Near   _TEXT:0A22		   1006	 1008  1010  1012  #1017
+CHECKRECEXIT		Near   _TEXT:0EBD		   1019	 #1402
+CLRSCR			Near   _TEXT:05FC		   #574
+COPYSTRING		Near   _TEXT:0616		   #590	 982  987  992	997  1081  1098	 1121  1138  1161  1178	 1201	  +
+							   1218	 1241  1258  1281  1298	 1321  1338  1361  1378	 1401
+COPYSTRING2		Near   _TEXT:0621		   #604	 1058  1063  1071  1076	 1103  1111  1116  1143	 1151  1156  1183 +
+							   1191	 1196  1223  1231  1236	 1263  1271  1276  1303	 1311  1316  1343 +
+							   1351	 1356  1383  1391  1396	 1425  1433  1441  1446	 1454  1466  1474 +
+							   1518	 1524  1530  1536
+CRR1			Near   _TEXT:0A8C		   1024	 #1042
+CRR2			Near   _TEXT:0B06		   1026	 #1083
+CRR3			Near   _TEXT:0B7D		   1028	 #1123
+CRR4			Near   _TEXT:0BF4		   1030	 #1163
+CRR5			Near   _TEXT:0C6B		   1032	 #1203
+CRR6			Near   _TEXT:0CE2		   1034	 #1243
+CRR7			Near   _TEXT:0D59		   1036	 #1283
+CRR8			Near   _TEXT:0DD0		   1038	 #1323
+CRR9			Near   _TEXT:0E47		   1040	 #1363
+DISKDATA		Byte   _TEXT:2E48		   963	1003  1018  1020  1043	1045  1048  1050  1052	1084  1086  1089  +
+							   1091	 1093  1124  1126  1129	 1131  1133  1164  1166	 1169  1171  1173 +
+							   1204	 1206  1209  1211  1213	 1244  1246  1249  1251	 1253  1284  1286 +
+							   1289	 1291  1293  1324  1326	 1329  1331  1333  1364	 1366  1369  1371 +
+							   1373	 1408  1409  #2714
+DISKDATA2		Byte   _TEXT:3048		   1417	 1423  1431  1439  1444	 1452  #2715
+DISKS			Byte   _TEXT:0995		   108	880  #952  1484	 1492  1500  1508  1514	 1520  1526  1532
+DISKT			Struct _TEXT:15AC DISKT_	   112	1516  1522  1528  1534	#1744
+DISKTMP			Byte   _TEXT:0997		   #954	 981  986  991	996  1079  1119	 1159  1199  1239  1279	 1319	  +
+							   1359	 1399
+DNENALEZEN		Near   _TEXT:09FD		   970	#998
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 50
+Symbol Table
+
+
+
+DONE_1			Near   _TEXT:06F1		   655	704  #708
+DONE_2			Near   _TEXT:080A		   734	741  748  755  762  769	 776  783  #790
+DONE_3			Near   _TEXT:0860		   685	#821
+DONE_ERROR		Near   _TEXT:088E		   832	#849
+DONE__1			Near   _TEXT:0936		   907	#911
+EMPTY			Near   _TEXT:05BC		   519	#523
+FIN			Near   _TEXT:0596		   489	#492
+FLUSHKBD		Near   _TEXT:05AC		   #512
+FLUSHKBD_		Near   _TEXT:05AE		   #516	 522
+GOTOXY			Near   _TEXT:05F0		   111	117  194  198  207  211	 215  220  224	234  238  242  247  251	  +
+							   261	265  269  274  278  288	 292  296  301	305  315  319  323  328	  +
+							   332	342  346  350  355  359	 369  373  377	382  386  396  400  404	  +
+							   409	413  423  427  431  #563  577  629  637	 652  690  696	798  857  +
+							   893	899
+HDD0			Byte   _TEXT:1008		   995	1485  #1547
+HDD1			Byte   _TEXT:100D		   990	1493  #1548
+HDD2			Byte   _TEXT:1012		   985	1501  #1549
+HDD3			Byte   _TEXT:1017		   980	1509  #1550
+HEADERST_		Struct _TEXT:0105 HEADERST	   #72
+KD_1			Near   _TEXT:066E		   #656	 661  668  675	680  705  851
+KD_2			Near   _TEXT:06B6		   659	#683
+KD_3			Near   _TEXT:0693		   663	#671
+KD_4			Near   _TEXT:06A7		   665	#678
+KD_5			Near   _TEXT:06BF		   677	682  #687
+KD_EXIT			Near   _TEXT:0692		   667	#669
+KD__1			Near   _TEXT:08AC		   #861	 866  871  883	888  908
+KD__2			Near   _TEXT:08C9		   864	#872
+KD__3			Near   _TEXT:08E2		   868	#878
+KD__4			Near   _TEXT:08F8		   870	#886
+KD__5			Near   _TEXT:0904		   885	#890
+KEYBDEV			Near   _TEXT:065B		   149	#649
+KEYBDEV_		Near   _TEXT:0896		   115	#854
+L1			Byte   _TEXT:109C		   1462	 #1564
+L2			Byte   _TEXT:10A3		   #1565
+L3			Byte   _TEXT:10AA		   #1566
+L4			Byte   _TEXT:10B1		   #1567
+L5			Byte   _TEXT:10B8		   #1568
+L6			Byte   _TEXT:10BF		   #1569
+L7			Byte   _TEXT:10C6		   #1570
+L8			Byte   _TEXT:10CD		   #1571
+L9			Byte   _TEXT:10D4		   #1572
+LEVEL			Word   _TEXT:0991		   #950	 1407  1460
+LEVEL_L			Word   _TEXT:10DB		   #1573
+LEVSTAT			Byte   _TEXT:1049		   1068	 1108  1148  1188  1228	 1268  1308  1348  1388	 1464  1471  #1554
+LOGO_GR			Near   _TEXT:15CC		   158	#1751
+LS_			Near   _TEXT:0616		   #591	 596
+LS_2			Near   _TEXT:0621		   #605	 610
+LS_EX_			Near   _TEXT:0620		   595	#597
+LS_EX_2			Near   _TEXT:062B		   609	#611
+LT100			Near   _TEXT:05D3		   538	#541
+NAMETMP			Byte   _TEXT:102B		   1060	 1100  1140  1180  1220	 1260  1300  1340  1380	 1445  1447  1453 +
+							   #1552
+PART			Word   _TEXT:0993		   672	#951  1467  1475
+PARTTABLE		Near   _TEXT:09FE		   972	#1002
+PARTTABLEEXIT		Near   _TEXT:0A21		   1004	 #1013
+POZNTMP			Byte   _TEXT:103F		   1073	 1113  1153  1193  1233	 1273  1313  1353  1393	 1440  #1553
+PRINTHEX32		Near   _TEXT:0637		   203	229  256  283  310  337	 364  391  418	#625
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 51
+Symbol Table
+
+
+
+PRINTMENUTABLEE		Byte   _TEXT:123D		   144	#1629
+PRINTMENUTABLEF		Byte   _TEXT:10DB		   124	#1575
+PRINTMENUTABLEM		Byte   _TEXT:11E6		   126	128  130  132  134  136	 138  140  142	#1616
+PRINT_DIGIT		Near   _TEXT:0551		   #445	 457
+PRINT_HEX		Near   _TEXT:054D		   #442	 631  639  808
+PRINT_INFO		Near   _TEXT:0270		   148	#186
+PRINT__DIGIT		Near   _TEXT:056F		   #467	 479
+PRINT__HEX		Near   _TEXT:056B		   #464	 800  804  816
+PRTCHR			Near   _TEXT:0598		   490	#498  542  545	654  692  698  802  806	 810  812  814	859  895  +
+							   901
+PRTDEC			Near   _TEXT:05BF		   #532	 539
+PRTSTR			Near   _TEXT:0589		   114	125  127  129  131  133	 135  137  139	141  143  145  196  200	  +
+							   209	213  217  222  226  236	 240  244  249	253  263  267  271  276	  +
+							   280	290  294  298  303  307	 317  321  325	330  334  344  348  352	  +
+							   357	361  371  375  379  384	 388  398  402	406  411  415  425  429	  +
+							   433	#485
+PS_2			Near   _TEXT:058A		   #487	 491
+READKEY			Near   _TEXT:0656		   #643	 657  862
+READMBR			Near   _TEXT:099F		   191	#956  1410
+RECORDNUM		Byte   _TEXT:1006		   1022	 1023  1025  1027  1029	 1031  1033  1035  1037	 1039  #1545
+RMBRD			Byte   _TEXT:0990		   #949	 962  974  976	978  1064  1104	 1144  1184  1224  1264	 1304	  +
+							   1344	 1384  1416
+RMBR_HDD0		Near   _TEXT:09F4		   975	#994
+RMBR_HDD1		Near   _TEXT:09EA		   977	#989
+RMBR_HDD2		Near   _TEXT:09E0		   979	#984
+RMBR_I			Near   _TEXT:09BB		   #973	 1078  1118  1158  1198	 1238  1278  1318  1358	 1398
+SAVELEVELSTATUS		Near   _TEXT:0F32		   1067	 1107  1147  1187  1227	 1267  1307  1347  1387	 #1458
+SAVETMPNAME		Near   _TEXT:0F03		   1059	 1099  1139  1179  1219	 1259  1299  1339  1379	 #1437
+SAVETMPNAME2		Near   _TEXT:0F25		   1448	 #1450
+SAVETMPSYS		Near   _TEXT:0ED0		   1054	 1095  1135  1175  1215	 1255  1295  1335  1375	 #1413
+SAVETMPSYS2		Near   _TEXT:0EF6		   1427	 #1429
+SETSEGMENTS		Near   _TEXT:062C		   157	#615  1459
+SHOW_LOGO		Near   _TEXT:023A		   104	#156
+SHOW_LOGO_1		Near   _TEXT:0242		   #160	 180
+SHOW_LOGO_2		Near   _TEXT:0249		   #164	 176
+SHOW_LOGO_X		Word   _TEXT:026C		   165	171  #182
+SHOW_LOGO_Y		Word   _TEXT:026E		   161	170  #183
+SKIP10			Near   _TEXT:05D8		   540	#543
+ST_1			Near   _TEXT:01C6		   109	#118
+SYSTMP			Byte   _TEXT:101C		   1055	 1096  1136  1176  1216	 1256  1296  1336  1376	 1424  1426  1432 +
+							   #1551
+TABLE1			Struct _TEXT:1294 TABLE_	   195	199  202  208  212  216	 729  730  731	732  733  1044	1047  1049+
+							   1051	 1053  1056  1061  1065	 1069  1074  1080  #1662
+TABLE2			Struct _TEXT:12EC TABLE_	   221	225  228  235  239  243	 736  737  738	739  740  1085	1088  1090+
+							   1092	 1094  1097  1101  1105	 1109  1114  1120  #1670
+TABLE3			Struct _TEXT:1344 TABLE_	   248	252  255  262  266  270	 743  744  745	746  747  1125	1128  1130+
+							   1132	 1134  1137  1141  1145	 1149  1154  1160  #1678
+TABLE4			Struct _TEXT:139C TABLE_	   275	279  282  289  293  297	 750  751  752	753  754  1165	1168  1170+
+							   1172	 1174  1177  1181  1185	 1189  1194  1200  #1686
+TABLE5			Struct _TEXT:13F4 TABLE_	   302	306  309  316  320  324	 757  758  759	760  761  1205	1208  1210+
+							   1212	 1214  1217  1221  1225	 1229  1234  1240  #1694
+TABLE6			Struct _TEXT:144C TABLE_	   329	333  336  343  347  351	 764  765  766	767  768  1245	1248  1250+
+							   1252	 1254  1257  1261  1265	 1269  1274  1280  #1702
+TABLE7			Struct _TEXT:14A4 TABLE_	   356	360  363  370  374  378	 771  772  773	774  775  1285	1288  1290+
+							   1292	 1294  1297  1301  1305	 1309  1314  1320  #1710
+TABLE8			Struct _TEXT:14FC TABLE_	   383	387  390  397  401  405	 778  779  780	781  782  1325	1328  1330+
+							   1332	 1334  1337  1341  1345	 1349  1354  1360  #1718
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 52
+Symbol Table
+
+
+
+TABLE9			Struct _TEXT:1554 TABLE_	   410	414  417  424  428  432	 785  786  787	788  789  1365	1368  1370+
+							   1372	 1374  1377  1381  1385	 1389  1394  1400  #1726
+TESTIFHDD		Near   _TEXT:0F6A		   106	#1479
+TESTIFHDD_1		Near   _TEXT:0F7E		   1483	 #1487
+TESTIFHDD_2		Near   _TEXT:0F92		   1491	 #1495
+TESTIFHDD_3		Near   _TEXT:0FA6		   1499	 #1503
+TESTIFHDD_4		Near   _TEXT:0FBA		   1507	 #1511
+TIHD_1			Near   _TEXT:0FBB		   1486	 1494  1502  1510  #1513
+TIHD_2			Near   _TEXT:0FCD		   1515	 #1519
+TIHD_3			Near   _TEXT:0FDF		   1521	 #1525
+TIHD_4			Near   _TEXT:0FF1		   1527	 #1531
+TIHD_5			Near   _TEXT:1003		   1533	 #1537
+UKAZATEL		Byte   _TEXT:1007		   #1546
+VIDEOATRIBUT		Byte   _TEXT:1005		   113	123  454  476  504  578	 #1544
+VIDEOSTRANKA		Byte   _TEXT:1004		   500	554  568  579  #1543
+V_DAC_STD		Near   _TEXT:2B48		   101	#2584
+WHEREXY			Near   _TEXT:05E2		   #550
+_B			Byte   _TEXT:098A		   794	811  #941
+_BMANAGER__		Near   _TEXT:0178		   8  #90
+_CX			Word   _TEXT:0988		   793	807  824  #940
+_DH			Byte   _TEXT:0987		   792	803  823  #939
+_DL			Byte   _TEXT:0986		   791	799  822  836  #938
+_P1			Byte   _TEXT:105D		   1469	 #1555
+_P2			Byte   _TEXT:1064		   #1556
+_P3			Byte   _TEXT:106B		   #1557
+_P4			Byte   _TEXT:1072		   #1558
+_P5			Byte   _TEXT:1079		   #1559
+_P6			Byte   _TEXT:1080		   #1560
+_P7			Byte   _TEXT:1087		   #1561
+_P8			Byte   _TEXT:108E		   #1562
+_P9			Byte   _TEXT:1095		   #1563
+_X			Byte   _TEXT:098C		   695	700  873  898  903  #943
+_Y			Byte   _TEXT:098D		   674	676  679  681  684  694	 702  709  710	712  714  716  718  720	  +
+							   722	724  726  817  850  874	 882  884  887	889  897  905  912  913	  +
+							   915	917  919  933  #944
+__SYS			Byte   _TEXT:098B		   795	815  #942
+__X			Byte   _TEXT:098E		   651	689  701  856  875  892	 904  #945
+__Y			Byte   _TEXT:098F		   650	688  703  855  876  891	 906  #946
+
+Structure Name		Type  Offset			   Cref	(defined at #)
+
+DISKT_							   #1735  1744
+ D1			Byte   0000
+ D2			Byte   0009
+ D3			Byte   0012
+ D4			Byte   001B
+HEADERST						   #10	72
+ _DATE_			Byte   0000
+ _FILENAME_		Byte   0008
+ _TIME_			Byte   0010
+ _LINKVER_		Word   0018
+ _CPU_			Word   001A
+ _OSMAJORVER		Word   001C
+ _OSMINORVER		Word   001E
+ _OSBUILDVER		Word   0020
+ _OSSUBVER		Byte   0022
+ _OSMODE		Byte   0023
+Turbo Assembler	 Version 3.2	    16/01/98 11:03:23	    Page 53
+Symbol Table
+
+
+
+ _OS			Byte   0024
+ _OS_			Dword  0025
+ _OS__			Dword  0029
+ _MODULETYPE		Word   002D
+ _OSGRSUBSYSTEM		Byte   002F
+ _MODULEFLAGS		Word   0030
+ _MODMAJORVER		Word   0032
+ _MODMINORVER		Word   0034
+ _MODBUILDVER		Word   0036
+ _MODSUBVER		Byte   0038
+ _NEEDCPU		Byte   0039
+ _NEEDFPU		Byte   003A
+ _STARTEIP		Dword  003B
+ _STARTCS		Word   003F
+ _DATATBLOFF		Dword  0041
+ _DATATBLSEG		Word   0045
+ _RESOURCETBLOFF	Dword  0047
+ _RESOURCETBLSEG	Word   004B
+ _CODETABLEOFF		Dword  004D
+ _CODETABLESEG		Word   0051
+ _IMPORTTBLOFF		Dword  0053
+ _IMPORTTBLSEG		Word   0057
+ _EXPORTTBLOFF		Dword  0059
+ _EXPORTTBLSEG		Word   005D
+ _STARTSP		Dword  005F
+ _STARTSS		Word   0063
+ _MINMEM		Word   0065
+ _MAXMEM		Word   0067
+ _CHECKSUMCRC		Dword  0069
+ _NEEDDOSENVIR		Byte   006D
+ _FILESIZE		Dword  006E
+ _LOADEDOK_		Byte   0072
+TABLE_							   #1643  1662	1670  1678  1686  1694	1702  1710  1718  1726
+ JMENO			Byte   0000
+ POPIS			Byte   000C
+ VELIKOST		Byte   001D
+ SYSTEM			Byte   0029
+ DISK			Byte   0031
+ POZNAMKA		Byte   0037
+ _HEAD			Byte   004D
+ _SECCYL		Word   004E
+ _DISK			Byte   0050
+ _SYS			Byte   0051
+ _SIZE			Dword  0052
+ _BOOT			Byte   0056
+
+Groups & Segments	Bit Size Align	Combine	Class	   Cref	(defined at #)
+
+_TEXT			16  3248 Para	none		   #1  2  2  2	2
+

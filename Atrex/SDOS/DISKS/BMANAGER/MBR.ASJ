@@ -1,0 +1,129 @@
+org 500h
+	cli                                    
+	xor	ax,ax                        
+	mov	ss,ax                        
+	mov	es,ax                        
+	mov	ds,ax                        
+	mov	sp,07C00h
+	mov	si,sp                        
+	sti                                    
+	mov	di,00500h                     
+	mov	cx,00180h                     
+	repe	movsw                        
+	mov	bx,00520h                     
+	jmp	bx       
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	lea	si, SysH
+	call	PrtStr
+	Call	ReadH
+	xor	ax,ax                        
+	mov	es,ax                        
+	mov	ds,ax                        
+	mov	dl, 80h
+	mov	dh, 01h
+	mov	cx, 0001h
+	mov	bx, 07C00h
+	mov	ax, 0201h
+	int	13h
+	mov	ax, cs
+	mov	ds, ax
+	jc	DN
+;	cmp	word ptr [07C00h+511], 0AA55h
+;	jne	LoadError
+	lea	si, Start
+	call	PrtStr
+	jmp	07C00h
+DN:
+	lea	si, DiskRE
+	call	PrtStr
+	jmp	Exit
+LoadError:
+	lea	si, LO
+	call	PrtStr
+Exit:
+	xor	ax, ax
+	int	16h
+	int	19h
+	ret
+
+PrtStr	Proc
+	pusha
+PS_2:	lodsb
+	cmp	al,00h
+	jz	fin
+	call	prtchr
+	jmp	PS_2
+fin:
+	popa
+	ret
+PrtStr	endp
+
+prtchr	proc
+	pusha
+	mov	bh, 0
+	mov	cx, 01h
+	mov	ah, 0eh
+	push	bx	;;;;;;;;;;;;;
+	mov	bl, 07	;;;;;;;;;;;;;
+	int	10h
+	pop	bx	;;;;;;;;;;;;;
+	popa
+	ret
+prtchr	endp
+
+ReadK	proc
+	xor	ax, ax
+	int	16h
+	ret
+ReadK	endp
+
+ReadH	proc
+	push	cs
+	pop	ds
+	push	cs
+	pop	es
+ReadHL:
+	Call	ReadK
+	mov	di, word ptr [i]
+	mov	byte ptr [ff+di], al
+	inc	word ptr [i]
+	cmp	word ptr [i], 20
+	je	ReadHE
+	cmp	al, 0dh
+	jne	ReadHL
+ReadHE:
+	lea	si, ff
+	lea	di, p
+	mov	cx, 20
+ReadHJ:
+	lodsb	
+	xchg	si, di
+	xchg	ah, al
+	lodsb
+	cmp	ah, al
+	jne	ReadNo
+	cmp	ah, 0dh
+	je	ReadHEE
+	loop	ReadHJ
+ReadHEE:
+	ret
+ReadNo:
+	lea	si, NoSH
+	call	PrtStr
+	jmp	$
+ReadH	endp
+
+i	dw	0
+ff	db	20 dup(0)
+p	db	"system",0dh
+
+DiskRE		db	"Chyba pri cteni disku HDD0:",0dh,0ah,00
+Start		db	0dh,0ah,"Startuji ATREX OS zavadec...",0dh,0ah,00
+LO		db	"Chyba pri nacitani operacniho systemu",0dh,0ah,00
+SysH		db	"Zadejte systemove heslo: ",00
+NoSH		db	01,01,01,07,07,00

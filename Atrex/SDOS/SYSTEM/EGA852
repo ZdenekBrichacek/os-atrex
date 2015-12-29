@@ -1,0 +1,8 @@
+_TEXT	segment
+assume	cs:_TEXT, ds:_TEXT, es:_TEXT, ss:_TEXT
+.586P
+org 100h
+@Filename:
+	mov	eax, cr4
+_TEXT	ends
+END	@Filename

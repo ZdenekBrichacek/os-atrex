@@ -1,0 +1,100 @@
+;--------------------
+LogAdrFyzAdr	proc
+;--------------------
+;ECX=log. adresa
+;!!! Vyplnit strukturu ExtBoot pro disk !!!
+;->AL=ü°slo povrchu
+;->BX=ü°slo stopy
+;->DX=ü°slo sektoru
+	mov	dword ptr cs:[LogAdrSek], ECX
+	;ü°lo povrchu = (LogA/SekNaStopu) mod Povrchu + Poü†teün°PovrchOblasti
+	mov	eax, ecx
+	xor	ecx, ecx
+	mov	cx, word ptr cs:[ExtBoot.SecOnCyl]
+
+	cmp	ecx,0
+	jne	LAFA_1
+	pushad
+	mov	al, 3
+	mov	bl, 0FFh
+;	call	ErrorMessage
+	popad
+	jmp	LAFA_DONE
+LAFA_1:
+	db	66h
+	idiv	cx
+	db	66h
+	cwd
+	mov	cx, word ptr cs:[ExtBoot.Heads]
+
+	cmp	ecx,0
+	jne	LAFA_2
+	pushad
+	mov	al, 3
+	mov	bl, 0FFh
+;	call	ErrorMessage
+	popad
+	jmp	LAFA_DONE
+LAFA_2:
+	db	66h
+	idiv	cx
+	db	66h
+	xchg	dx, ax
+	db	66h
+	xor	cx, cx
+	mov	cl, byte ptr cs:[ExtBoot.FirstHeaPart]
+	add	ax, cx
+	push	ax
+	;ü°slo stopy = LogA/(SekNaStopu*Povrchu)+Poü†teün°StopaOblasti
+	xor	ecx, ecx
+	mov	ax, word ptr cs:[ExtBoot.SecOnCyl]
+	mov	cx, word ptr cs:[ExtBoot.Heads]
+	mul	cx
+	mov	cx, ax
+	mov	eax, dword ptr cs:[LogAdrSek]
+	db	66h
+	cwd
+
+	cmp	ecx,0
+	jne	LAFA_3
+	pushad
+	mov	al, 3
+	mov	bl, 0FFh
+;	call	ErrorMessage
+	popad
+	jmp	LAFA_DONE
+LAFA_3:
+	db	66h
+	idiv	cx
+	mov	cx, word ptr cs:[ExtBoot.FirstCylPart]
+	add	ax, cx
+	xchg	bx, ax
+	push	bx
+	;ü°slo sektoru = 1+(LodA mod SekNaStopu)+Poü†teün°SektorOblasti
+	xor	ecx, ecx
+	mov	eax, dword ptr cs:[LogAdrSek]
+	db	66h
+	cwd
+	mov	cx, word ptr cs:[ExtBoot.SecOnCyl]
+
+	cmp	ecx,0
+	jne	LAFA_4
+	pushad
+	mov	al, 3
+	mov	bl, 0FFh
+;	call	ErrorMessage
+	popad
+	jmp	LAFA_DONE
+LAFA_4:
+	db	66h
+	idiv	cx
+	xchg	dx, ax
+	add	ax, 1					;
+	add	ax, word ptr cs:[ExtBoot.FirstSecPart]	;
+	xchg	dx, ax
+	pop	bx
+	pop	ax
+LAFA_DONE:
+	ret
+LogAdrSek	dd	0
+LogAdrFyzAdr	endp

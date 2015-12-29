@@ -1,0 +1,122 @@
+_TEXT	segment
+assume	cs:_TEXT, ds:_TEXT, es:_TEXT, ss:_TEXT
+
+org 100h
+@Filename:
+	jmp	Start
+
+OFS_13	dw	?
+SEG_13	dw	?
+DISK	db	'#A '
+
+Int13	proc	far
+	cli
+	push	AX
+	push	BX
+	push	CX
+	push	DX
+	push	SI
+	push	DI
+	push	DS
+	push	ES
+	push	BP
+
+	push	ds
+	push	cs
+	pop	ds
+	sti
+
+	mov	byte ptr cs:[DISK+1],' '
+	mov	al,dl
+	cmp	al,00	;A:
+	je	DA_
+	cmp	al,01	;B:
+	je	DB_
+	cmp	al,80h	;HD0:
+	je	DC_
+	cmp	al,81h	;HD1:
+	je	DD_
+DDAL:
+	mov	byte ptr cs:[DISK],' '
+	mov	al,ah
+	cmp	al,02	;Ÿten¡
+	je	C_
+	cmp	al,03	;z pis
+	je	Z_
+	cmp	al,04	;verifikace
+	je	V_
+	cmp	al,05	;form tov n¡
+	je	F_
+DDAL1:
+	mov	AX,cs ;Disk
+	mov	ES,AX
+	mov	BP,offset cs:[Disk]
+	mov	CX,2
+	mov	BH,00h
+	mov	BL,(16*7)+0Fh
+	mov	DH,0
+	mov	DL,78
+	mov	AH,13h
+	mov	AL,00h
+	Int	10h
+
+	cli
+	pop	ds
+	pop	BP
+	pop	ES
+	pop	DS
+	pop	DI
+	pop	SI
+	pop	DX
+	pop	CX
+	pop	BX
+	pop	AX
+	sti
+	jmp	dword ptr cs:[ofs_13]
+C_:
+	mov	byte ptr cs:[DISK],'<'
+	jmp	DDAL1
+Z_:
+	mov	byte ptr cs:[DISK],'>'
+	jmp	DDAL1
+V_:
+	mov	byte ptr cs:[DISK],'#'
+	jmp	DDAL1
+F_:
+	mov	byte ptr cs:[DISK],''
+	jmp	DDAL1
+DA_:
+	mov	byte ptr cs:[DISK+1],'A'
+	jmp	DDAL
+DB_:
+	mov	byte ptr cs:[DISK+1],'B'
+	jmp	DDAL
+DC_:
+	mov	byte ptr cs:[DISK+1],'C'
+	jmp	DDAL
+DD_:
+	mov	byte ptr cs:[DISK+1],'D'
+	jmp	DDAL
+int13	endp
+
+Right	db	'SHOW ACTIVITY INT13H',0dh,0ah,0dh,0ah,'$'
+
+Start	proc	near
+	mov	AX,3513h
+	int	21h
+	mov	word ptr [ofs_13],bx
+	mov	word ptr [seg_13],es
+	lea	dx,int13
+	mov	ax,2513h
+	int	21h
+	mov	ax,word ptr ds:[2ch]
+	mov	es,ax
+	mov	ah,49h
+	int	21h
+	mov	ax,3100h
+	mov	dx,(offset Right - offset _TEXT +15) shr 4
+	int	21h
+Start	endp
+_TEXT	ends
+END	@Filename
+

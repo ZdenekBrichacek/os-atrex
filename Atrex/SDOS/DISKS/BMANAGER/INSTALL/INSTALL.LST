@@ -1,0 +1,1974 @@
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 1
+install.asm
+
+
+
+      1	    0000			 _TEXT	 segment
+      2					 assume	 cs:_TEXT, ds:_TEXT, es:_TEXT, ss:_TEXT
+      3					 .486P
+      4					 org 100h
+      5	    0100			 @Filename:
+      6	    0100  4A				 dec	 dx
+      7	    0101  42				 inc	 dx
+      8	    0102  EB 74	90			 jmp	 _BManager__
+      9					 include header.inc
+1    10	00000105			 HeaderSt	 struc
+1    11											 ;>
+1    12	00000000  01*(32 38 2F 31 32  +		 _DATE_		 db	 ??DATE		 ;vyplÂuje LINKER
+     13		  2F 39	34)
+1    14	00000008  01*(69 6E 73 74 61  +		 _FILENAME_	 db	 ??FILENAME	 ;
+     15		  6C 6C	20)
+1    16	00000010  01*(32 30 3A 35 39  +		 _TIME_		 db	 ??TIME		 ;
+     17		  3A 34	32)
+1    18	00000018  01*(0314)			 _LINKVER_	 dw	 ??VERSION	 ;
+1    19	0000001A  01*(1F9F)			 _CPU_		 dw	 @CPU		 ;
+1    20											 ;<
+1    21	0000001C  01*(0001)			 _OSMajorVer	 dw	 0001h
+1    22	0000001E  01*(0000)			 _OSMinorVer	 dw	 0000h
+1    23	00000020  01*(0010)			 _OSBuildVer	 dw	 0010h
+1    24	00000022  01*(42)			 _OSSubVer	 db	 "B"
+1    25	00000023  01*(00)			 _OSMode	 db	 00h		 ;0 - vÁechny ,	1 - re†lnÏ,
+1    26											 ; 2 - chr†nÿnÏ
+1    27	00000024  01*(0E)			 _OS		 db	 0Eh		 ;ATREX	(SDOS)
+1    28	00000025  01*(41545245)			 _OS_		 dd	 "ATRE"
+1    29	00000029  01*(584F5378)			 _OS__		 dd	 "XOSx"
+1    30	0000002D  01*(0000)			 _ModuleType	 dw	 0000h		 ;1 - COM, 2 - DAT, 3 -	OVL,
+1    31											 ; 4 - font, 5 - DLL, 6	- SYS
+1    32	0000002F  01*(00)			 _OSGrSubsystem	 db	 00h		 ;11h -	GUI, 22h - TEXT
+1    33	00000030  01*(0000)			 _ModuleFlags	 dw	 0000h		 ;xx11h	- aplikace, xx22h - TSR
+1    34											 ; 00xxh - 8bit, 11xx -	16bit
+1    35											 ; 22xxh - 32bit, 33xx - 64bit
+1    36	00000032  01*(0001)			 _ModMajorVer	 dw	 0001h
+1    37	00000034  01*(0000)			 _ModMinorVer	 dw	 0000h
+1    38	00000036  01*(0010)			 _ModBuildVer	 dw	 0010h
+1    39	00000038  01*(42)			 _ModSubVer	 db	 "B"
+1    40
+1    41	00000039  01*(00)			 _NeedCPU	 db	 00h		 ;00h -	8086, 11h - 386
+1    42											 ; 22h - 486, 33h - 586
+1    43	0000003A  01*(00)			 _NeedFPU	 db	 00h		 ;00h -	ne, 11h	- ano
+1    44	0000003B  01*(00000000)			 _StartEIP	 dd	 00000000h	 ;Startovac° instrukce EIP
+1    45	0000003F  01*(0000)			 _StartCS	 dw	 0000h		 ;Startovac° segment
+1    46											 ; -mus° se nakop°rovat	tam!!!
+1    47	00000041  01*(00000000)			 _DataTblOff	 dd	 00000000h
+1    48	00000045  01*(0000)			 _DataTblSeg	 dw	 0000h
+1    49	00000047  01*(00000000)			 _ResourceTblOff dd	 00000000h
+1    50	0000004B  01*(0000)			 _ResourceTblSeg dw	 0000h
+1    51	0000004D  01*(00000000)			 _CodeTableOff	 dd	 00000000h
+1    52	00000051  01*(0000)			 _CodeTableSeg	 dw	 0000h
+1    53	00000053  01*(00000000)			 _ImportTblOff	 dd	 00000000h
+1    54	00000057  01*(0000)			 _ImportTblSeg	 dw	 0000h
+1    55	00000059  01*(00000000)			 _ExportTblOff	 dd	 00000000h
+1    56	0000005D  01*(0000)			 _ExportTblSeg	 dw	 0000h
+1    57	0000005F  01*(00000000)			 _StartSP	 dd	 00000000h
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 2
+install.asm
+
+
+
+1    58	00000063  01*(0000)			 _StartSS	 dw	 0000h
+1    59	00000065  01*(0000)			 _MinMem	 dw	 0000h		 ;Pot˝ebn† pamÿú MinMem	* 16
+1    60	00000067  01*(0000)			 _MaxMem	 dw	 0000h
+1    61	00000069  01*(00000000)			 _CheckSumCRC	 dd	 00000000h		 ;Kontroln° souüet
+1    62	0000006D  01*(00)			 _NeedDOSEnvir	 db	 00h		 ;0 - ne, 1 - ano
+1    63	0000006E  01*(00000000)			 _FileSize	 dd	 00000000h
+1    64	00000072  01*(00)			 _LoadedOK_	 db	 00h		 ;00 - mus° bÏt	v souboru
+1    65											 ; 011h	- (v pamÿti) OK
+1    66											 ; 0FFh	- (v pamÿti) CHYBA
+1    67											 ; nastavuje inicializaün° rutina
+1    68											 ; potvrzen° zaveden° na spr†vnÇ
+1    69											 ; m°sto, vyplnÿn° pot˝ebnÏch
+1    70											 ; poloßek a spr†vnost systÇmu
+1    71	00000073			 HeaderSt	 ends
+1    72	    0105  32 38	2F 31 32 2F 39+	 HeaderSt_ HeaderSt<>
+     73		  34 69	6E 73 74 61 6C+
+     74		  6C 20	32 30 3A 35 39+
+     75		  3A 34	32 0314	1F9F  +
+     76		  0001 0000 0010 42 00+
+     77		  0E 41545245 584F5378+
+     78		  0000 00 0000 0001   +
+     79		  0000 0010 42 00 00  +
+     80		  00000000 0000	      +
+     81		  00000000 0000	      +
+     82		  00000000 0000	      +
+     83		  00000000 0000	      +
+     84		  00000000 0000	      +
+     85		  00000000 0000	      +
+     86		  00000000 0000	0000  +
+     87		  0000 00000000	00    +
+     88		  00000000 00
+1    89
+     90	    0178			 _BManager__:
+     91	    0178  B4 05				 mov	 ah, 05h
+     92	    017A  B0 00				 mov	 al, 0
+     93	    017C  CD 10				 Int	 10H
+     94	    017E  8C C8				 mov	 ax, cs
+     95	    0180  8E D8				 mov	 ds, ax
+     96	    0182  8E C0				 mov	 es, ax
+     97	    0184  8E E0				 mov	 fs, ax
+     98	    0186  C6 06	1CEEr 07 90		 mov	 VideoAtribut, 07h
+     99	    018C  66| 8D 36 1CF0r		 lea	 esi, Intro
+    100	    0191  E8 013E			 Call	 PrtStr
+    101	    0194  66| 8D 36 1FBAr		 lea	 esi, NR
+    102	    0199  E8 0136			 Call	 PrtStr
+    103	    019C  66| 8D 36 1EF2r		 lea	 esi, Install?
+    104	    01A1  E8 012E			 Call	 PrtStr
+    105	    01A4			 Inst:
+    106	    01A4  E8 01F8			 Call	 ReadKey
+    107	    01A7  3C 41				 cmp	 al, "A"
+    108	    01A9  74 23	90 90			 je	 InstOk
+    109	    01AD  3C 6E				 cmp	 al, "n"
+    110	    01AF  74 04	90 90			 je	 InstErr
+    111	    01B3  EB EF				 jmp	 Inst
+    112	    01B5			 InstErr:
+    113	    01B5  66| 8D 36 1FBAr		 lea	 esi, NR
+    114	    01BA  E8 0115			 Call	 PrtStr
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 3
+install.asm
+
+
+
+    115	    01BD  66| 8D 36 1F2Dr		 lea	 esi, Ukoncuji
+    116	    01C2  E8 010D			 Call	 PrtStr
+    117	    01C5  66| 8D 36 1FBAr		 lea	 esi, NR
+    118	    01CA  E8 0105			 Call	 PrtStr
+    119	    01CD  C3				 ret
+    120	    01CE			 InstOk:
+    121	    01CE  66| 8D 36 1FBAr		 lea	 esi, NR
+    122	    01D3  E8 00FC			 Call	 PrtStr
+    123	    01D6  66| 8D 36 1F57r		 lea	 esi, Proveruji
+    124	    01DB  E8 00F4			 Call	 PrtStr
+    125	    01DE  E8 01C3			 Call	 CheckDisk
+    126
+    127	    01E1  E8 01BB			 Call	 ReadKey
+    128	    01E4  E8 000A			 Call	 TestSVGA
+    129
+    130	    01E7  33 C0			 xor	 ax, ax
+    131	    01E9  CD 16			 int	 16h
+    132	    01EB  B8 0003			 mov	 ax, 0003h
+    133	    01EE  CD 10				 int	 10h
+    134	    01F0  C3				 ret
+    135
+    136	    01F1			 TestSVGA	 proc
+    137	    01F1  B8 005C			 mov	 ax, 005Ch
+    138	    01F4  CD 10				 int	 10h
+    139
+    140	    01F6  33 DB				 xor	 bx, bx
+    141	    01F8  B9 0100			 mov	 cx, 256
+    142	    01FB  BA 0471r			 mov	 dx, offset V_DAC_STD
+    143	    01FE  B8 1012			 mov	 ax, 1012h
+    144	    0201  CD 10				 int	 10h
+    145	    0203  E8 005A			 call	 Show_Logo
+    146	    0206  C6 06	1CEEr 70 90		 mov	 VideoAtribut, 070h
+    147
+    148	    020C  66| 8D 36 1FBAr		 lea	 esi, NR
+    149	    0211  E8 00BE			 Call	 PrtStr
+    150	    0214  66| 8D 36 1FBAr		 lea	 esi, NR
+    151	    0219  E8 00B6			 Call	 PrtStr
+    152	    021C  66| 8D 36 1FBAr		 lea	 esi, NR
+    153	    0221  E8 00AE			 Call	 PrtStr
+    154	    0224  66| 8D 36 1FBAr		 lea	 esi, NR
+    155	    0229  E8 00A6			 Call	 PrtStr
+    156	    022C  66| 8D 36 2173r		 lea	 esi, SVGA
+    157	    0231  E8 009E			 Call	 PrtStr
+    158	    0234			 TSVGAr:
+    159	    0234  E8 0168			 Call	 ReadKey
+    160	    0237  3C 61				 cmp	 al, "a"
+    161	    0239  74 0A	90 90			 je	 TSVGAOk
+    162	    023D  3C 6E				 cmp	 al, "n"
+    163	    023F  74 0D	90 90			 je	 TSVGAErr
+    164	    0243  EB EF				 jmp	 TSVGAr
+    165	    0245			 TSVGAOk:
+    166	    0245  C6 06	1CEFr 00 90		 mov	 _SVGA,	00h
+    167	    024B  EB 07	90			 jmp	 TSVGA_E
+    168	    024E			 TSVGAErr:
+    169	    024E  C6 06	1CEFr FF 90		 mov	 _SVGA,	0FFh
+    170	    0254			 TSVGA_E:
+    171	    0254  C6 06	1CEEr 07 90		 mov	 VideoAtribut, 07h
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 4
+install.asm
+
+
+
+    172	    025A  B8 0003			 mov	 ax, 0003h
+    173	    025D  CD 10				 int	 10h
+    174	    025F  C3				 ret
+    175	    0260			 TestSVGA	 endp
+    176
+    177	    0260			 Show_Logo	 proc
+    178	    0260  E8 0112			 Call	 SetSegments
+    179	    0263  BE 0771r			 lea	 si, Logo_Gr
+    180	    0266  33 C9				 xor	 cx, cx
+    181	    0268			 Show_Logo_1:
+    182	    0268  89 0E	0294r			 mov	 Show_Logo_Y, cx
+    183	    026C  51				 push	 cx
+    184	    026D  33 C9				 xor	 cx, cx
+    185	    026F			 Show_Logo_2:
+    186	    026F  89 0E	0292r			 mov	 Show_Logo_X, cx
+    187	    0273  51				 push	 cx
+    188	    0274  AC				 lodsb
+    189	    0275  B4 0C				 mov	 ah, 0Ch
+    190	    0277  B7 00				 mov	 bh, 0
+    191	    0279  8B 0E	0294r			 mov	 cx, Show_Logo_Y
+    192	    027D  8B 16	0292r			 mov	 dx, Show_Logo_X
+    193	    0281  CD 10				 int	 10h
+    194	    0283  59				 pop	 cx
+    195	    0284  41				 inc	 cx
+    196	    0285  83 F9	37			 cmp	 cx, 55
+    197	    0288  75 E5				 jne	 Show_Logo_2
+    198	    028A  59				 pop	 cx
+    199	    028B  41				 inc	 cx
+    200	    028C  83 F9	64			 cmp	 cx, 100
+    201	    028F  75 D7				 jne	 Show_Logo_1
+    202	    0291  C3				 ret
+    203	    0292  0000			 Show_Logo_X	 dw	 0000
+    204	    0294  0000			 Show_Logo_Y	 dw	 0000
+    205	    0296			 Show_Logo	 endp
+    206
+    207					 include Func.asm
+1   208					 ;Tisk 2 hex ü°slic
+1   209					 ;DX=¨°slo
+1   210	    0296			 Print_Hex	 proc
+1   211	    0296  60				 pusha
+1   212	    0297  B9 0004			 mov	 cx, 4		 ; 8 hex digits
+1   213	    029A			 print_digit:
+1   214	    029A  C1 C2	04			 rol	 dx, 4		 ; rotate so that lowest 4 bits	are used
+1   215	    029D  B8 0E0F			 mov	 ax, 0e0fh	 ; ah =	request, al = mask for nybble
+1   216	    02A0  22 C2				 and	 al, dl
+1   217	    02A2  04 90				 add	 al, 090h	 ; convert al to ascii hex (four instructions)
+1   218	    02A4  27				 daa
+1   219	    02A5  14 40				 adc	 al, 040h
+1   220	    02A7  27				 daa
+1   221	    02A8  53				 push	 bx	 ;;;;;;;;;;;;;
+1   222	    02A9  8A 1E	1CEEr			 mov	 bl,VideoAtribut ;;;;;;;;;;;;;
+1   223	    02AD  CD 10				 int	 10h
+1   224	    02AF  5B				 pop	 bx	 ;;;;;;;;;;;;;
+1   225	    02B0  E2 E8				 loop	 print_digit
+1   226	    02B2  61				 popa
+1   227	    02B3  C3				 ret
+1   228	    02B4			 Print_Hex	 endp
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 5
+install.asm
+
+
+
+1   229
+1   230					 ;Tisk 2 hex ü°slic
+1   231					 ;DX=¨°slo
+1   232	    02B4			 Print__Hex	 proc
+1   233	    02B4  60				 pusha
+1   234	    02B5  B9 0002			 mov	 cx, 2		 ; 8 hex digits
+1   235	    02B8			 print__digit:
+1   236	    02B8  C1 C2	04			 rol	 dx, 4		 ; rotate so that lowest 4 bits	are used
+1   237	    02BB  B8 0E0F			 mov	 ax, 0e0fh	 ; ah =	request, al = mask for nybble
+1   238	    02BE  22 C2				 and	 al, dl
+1   239	    02C0  04 90				 add	 al, 090h	 ; convert al to ascii hex (four instructions)
+1   240	    02C2  27				 daa
+1   241	    02C3  14 40				 adc	 al, 040h
+1   242	    02C5  27				 daa
+1   243	    02C6  53				 push	 bx	 ;;;;;;;;;;;;;
+1   244	    02C7  8A 1E	1CEEr			 mov	 bl,VideoAtribut ;;;;;;;;;;;;;
+1   245	    02CB  CD 10				 int	 10h
+1   246	    02CD  5B				 pop	 bx	 ;;;;;;;;;;;;;
+1   247	    02CE  E2 E8				 loop	 print__digit
+1   248	    02D0  61				 popa
+1   249	    02D1  C3				 ret
+1   250	    02D2			 Print__Hex	 endp
+1   251
+1   252					 ; Routine to print asciiz-string at DS:SI
+1   253	    02D2			 PrtStr	 Proc
+1   254	    02D2  60				 pusha
+1   255	    02D3  AC			 PS_2:	 lodsb
+1   256	    02D4  3C 00				 cmp	 al,00h
+1   257	    02D6  74 07	90 90			 jz	 fin
+1   258	    02DA  E8 0004			 call	 prtchr
+1   259	    02DD  EB F4				 jmp	 PS_2
+1   260	    02DF			 fin:
+1   261	    02DF  61				 popa
+1   262	    02E0  C3				 ret
+1   263	    02E1			 PrtStr	 endp
+1   264
+1   265					 ; Part	of above routine, this one just	prints ascii al
+1   266	    02E1			 prtchr	 proc
+1   267	    02E1  60				 pusha
+1   268	    02E2  8A 3E	1CEDr			 mov	 bh, VideoStranka
+1   269	    02E6  B9 0001			 mov	 cx, 01h
+1   270	    02E9  B4 0E				 mov	 ah, 0eh
+1   271	    02EB  53				 push	 bx	 ;;;;;;;;;;;;;
+1   272	    02EC  8A 1E	1CEEr			 mov	 bl, VideoAtribut	 ;;;;;;;;;;;;;
+1   273	    02F0  CD 10				 int	 10h
+1   274	    02F2  5B				 pop	 bx	 ;;;;;;;;;;;;;
+1   275	    02F3  61				 popa
+1   276	    02F4  C3				 ret
+1   277	    02F5			 prtchr	 endp
+1   278
+1   279					 ;-------------------------
+1   280	    02F5			 FlushKbd	 proc
+1   281					 ; Flush the keyboard buffer
+1   282					 ;-------------------------
+1   283	    02F5  66| 60			 pushad
+1   284	    02F7			 FlushKbd_:
+1   285	    02F7  B4 01				 mov	 ah,01
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 6
+install.asm
+
+
+
+1   286	    02F9  CD 16				 int	 16h
+1   287	    02FB  74 08	90 90			 jz	 empty
+1   288	    02FF  32 E4				 xor	 ah,ah
+1   289	    0301  CD 16				 int	 16h
+1   290	    0303  EB F2				 jmp	 FlushKbd_
+1   291	    0305			 empty:
+1   292	    0305  66| 61			 popad
+1   293	    0307  C3				 ret
+1   294	    0308			 FlushKbd	 endp
+1   295
+1   296					 ;---------------------------
+1   297					 ; Print decimal number	(AL).
+1   298					 ;---------------------------
+1   299
+1   300	    0308  50			 prtdec: push	 ax
+1   301	    0309  51				 push	 cx
+1   302	    030A  32 E4				 xor	 ah,ah
+1   303	    030C  B1 0A				 mov	 cl,0Ah
+1   304	    030E  F6 F9				 idiv	 cl
+1   305	    0310  3C 09				 cmp	 al,09h
+1   306	    0312  76 08	90 90			 jbe	 lt100
+1   307	    0316  E8 FFEF			 call	 prtdec
+1   308	    0319  EB 06	90			 jmp	 skip10
+1   309	    031C  04 30			 lt100:	 add	 al,30h
+1   310	    031E  E8 FFC0			 call	 prtchr
+1   311	    0321  8A C4			 skip10: mov	 al,ah
+1   312	    0323  04 30				 add	 al,30h
+1   313	    0325  E8 FFB9			 call	 prtchr
+1   314	    0328  59				 pop	 cx
+1   315	    0329  58				 pop	 ax
+1   316	    032A  C3				 ret
+1   317
+1   318	    032B			 WhereXY proc
+1   319	    032B  50				 push	 ax
+1   320	    032C  53				 push	 bx
+1   321	    032D  B8 0300			 mov	 ax, 0300h
+1   322	    0330  8A 3E	1CEDr			 mov	 bh, VideoStranka
+1   323	    0334  CD 10				 int	 10h
+1   324	    0336  5B				 pop	 bx
+1   325	    0337  58				 pop	 ax
+1   326	    0338  C3				 ret
+1   327					 ;DL=sloupec
+1   328					 ;DH=˝†dek
+1   329	    0339			 WhereXY endp
+1   330
+1   331	    0339			 GotoXY	 proc
+1   332					 ;DL=sloupec
+1   333					 ;DH=˝†dek
+1   334	    0339  60				 pusha
+1   335	    033A  B8 0200			 mov	 ax, 0200h
+1   336	    033D  8A 3E	1CEDr			 mov	 bh, VideoStranka
+1   337	    0341  CD 10				 int	 10h
+1   338	    0343  61				 popa
+1   339	    0344  C3				 ret
+1   340	    0345			 GotoXY	 endp
+1   341
+1   342	    0345			 ClrScr	 proc
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 7
+install.asm
+
+
+
+1   343	    0345  60				 pusha
+1   344	    0346  BA 0000			 mov	 dx, 0000h
+1   345	    0349  E8 FFED			 call	 GotoXY
+1   346	    034C  8A 1E	1CEEr			 mov	 bl, VideoAtribut
+1   347	    0350  8A 3E	1CEDr			 mov	 bh, VideoStranka
+1   348	    0354  B0 20				 mov	 al, 32
+1   349	    0356  B9 1F40			 mov	 cx,8000
+1   350	    0359  B4 09				 mov	 ah, 09
+1   351	    035B  CD 10				 int	 10h
+1   352	    035D  61				 popa
+1   353	    035E  C3				 ret
+1   354	    035F			 ClrScr	 endp
+1   355
+1   356					 ;DS:SI=ukazatel na ˝etÿtec ukonüenÏ 00h
+1   357					 ;ES:DI=ukazatel na c°lovÏ ˝etÿtec
+1   358	    035F			 CopyString	 proc
+1   359	    035F			 LS_:
+1   360	    035F  AC				 LODSB
+1   361	    0360  AA				 STOSB
+1   362	    0361  3C 00				 cmp	 al, 00h
+1   363	    0363  74 04	90 90			 je	 LS_EX_
+1   364	    0367  EB F6				 jmp	 LS_
+1   365	    0369			 LS_EX_:
+1   366	    0369  C3				 ret
+1   367	    036A			 CopyString	 endp
+1   368
+1   369					 ;DS:SI=ukazatel na ˝etÿtec ukonüenÏ 00h
+1   370					 ;ES:DI=ukazatel na c°lovÏ ˝etÿtec
+1   371					 ;CX=ZnakÖ
+1   372	    036A			 CopyString2	 proc
+1   373	    036A			 LS_2:
+1   374	    036A  AC				 LODSB
+1   375	    036B  AA				 STOSB
+1   376	    036C  3C 00				 cmp	 al, 00h
+1   377	    036E  74 04	90 90			 je	 LS_EX_2
+1   378	    0372  E2 F6				 loop	 LS_2
+1   379	    0374			 LS_EX_2:
+1   380	    0374  C3				 ret
+1   381	    0375			 CopyString2	 endp
+1   382
+1   383	    0375			 SetSegments	 proc
+1   384	    0375  50				 push	 ax
+1   385	    0376  8C C8				 mov	 ax, cs
+1   386	    0378  8E D8				 mov	 ds, ax
+1   387	    037A  8E C0				 mov	 es, ax
+1   388	    037C  8E E0				 mov	 fs, ax
+1   389	    037E  58				 pop	 ax
+1   390	    037F  C3				 ret
+1   391	    0380			 SetSegments	 endp
+1   392
+1   393	    0380			 PrintHex32:
+1   394	    0380  60				 pusha
+1   395	    0381  66| 50			 push	 eax
+1   396	    0383  8B DA				 mov	 bx, dx
+1   397	    0385  E8 FFB1			 call	 GotoXY
+1   398	    0388  5A				 pop	 dx
+1   399	    0389  E8 FF0A			 call	 Print_Hex
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 8
+install.asm
+
+
+
+1   400	    038C  FE CB				 dec	 bl
+1   401	    038E  FE CB				 dec	 bl
+1   402	    0390  FE CB				 dec	 bl
+1   403	    0392  FE CB				 dec	 bl
+1   404	    0394  8B D3				 mov	 dx, bx
+1   405	    0396  E8 FFA0			 call	 GotoXY
+1   406	    0399  5A				 pop	 dx
+1   407	    039A  E8 FEF9			 call	 Print_Hex
+1   408	    039D  61				 popa
+1   409	    039E  C3				 ret
+1   410
+1   411	    039F			 ReadKey proc
+1   412	    039F  33 C0				 xor	 ax, ax
+1   413	    03A1  CD 16				 int	 16h
+1   414	    03A3  C3				 ret
+1   415	    03A4			 ReadKey endp
+1   416
+1   417	    03A4			 CheckDisk	 proc
+1   418	    03A4  C6 06	0468r 01 90		 mov	 Sektor, 1
+1   419	    03AA  FE 06	0468r			 inc	 Sektor
+1   420	    03AE  8A 0E	0468r			 mov	 cl, Sektor
+1   421	    03B2  8C C8				 mov	 ax, cs
+1   422	    03B4  8E C0				 mov	 es, ax
+1   423	    03B6  B4 02				 mov	 ah, 02
+1   424	    03B8  B0 01				 mov	 al, 1
+1   425	    03BA  B2 80				 mov	 dl, 80h
+1   426	    03BC  B6 00				 mov	 dh, 0
+1   427	    03BE  B5 00				 mov	 ch, 0
+1   428	    03C0  BB 2209r			 mov	 bx, offset DiskTmp
+1   429	    03C3  CD 13				 int	 13h
+1   430	    03C5  72 65	90 90			 jc	 CheckDisk_Err
+1   431	    03C9  66| BE 00002277r		 mov	 esi, offset DiskTmp+69h+5
+1   432	    03CF  66| 67| 8B 06			 mov	 eax, dword ptr	[esi]
+1   433	    03D3  66| A3 046Dr			 mov	 _ABMSumCRC, eax
+1   434	    03D7  EB 20	90			 jmp	 CheckDisk_3
+1   435	    03DA			 CheckDisk_2:
+1   436	    03DA  FE 06	0468r			 inc	 Sektor
+1   437	    03DE  8A 0E	0468r			 mov	 cl, Sektor
+1   438	    03E2  8C C8				 mov	 ax, cs
+1   439	    03E4  8E C0				 mov	 es, ax
+1   440	    03E6  B4 02				 mov	 ah, 02
+1   441	    03E8  B0 01				 mov	 al, 1
+1   442	    03EA  B2 80				 mov	 dl, 80h
+1   443	    03EC  B6 00				 mov	 dh, 0
+1   444	    03EE  B5 00				 mov	 ch, 0
+1   445	    03F0  BB 2209r			 mov	 bx, offset DiskTmp
+1   446	    03F3  CD 13				 int	 13h
+1   447	    03F5  72 35	90 90			 jc	 CheckDisk_Err
+1   448
+1   449	    03F9			 CheckDisk_3:
+1   450	    03F9  8C C8				 mov	 ax, cs
+1   451	    03FB  8E D8				 mov	 ds, ax
+1   452	    03FD  B9 0200			 mov	 cx, 512
+1   453	    0400  BE 2209r			 mov	 si, offset DiskTmp
+1   454	    0403  66| 33 C0			 xor	 eax, eax
+1   455	    0406			 CheckDisk_1:
+1   456	    0406  AC				 lodsb
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 9
+install.asm
+
+
+
+1   457	    0407  46				 inc	 si
+1   458	    0408  66| 01 06 0469r		 add	 Soucet, eax
+1   459	    040D  49				 dec	 cx
+1   460	    040E  83 F9	00			 cmp	 cx, 0000h
+1   461	    0411  75 F3				 jne	 CheckDisk_1
+1   462	    0413  80 3E	0468r 16 90		 cmp	 Sektor, Sektoru
+1   463	    0419  75 BF				 jne	 CheckDisk_2
+1   464	    041B  C3				 ret
+1   465
+1   466	    041C  66| 8D 36 1FBDr		 lea	 esi, Ok
+1   467	    0421  E8 FEAE			 Call	 PrtStr
+1   468	    0424  66| 8D 36 1FBAr		 lea	 esi, NR
+1   469	    0429  E8 FEA6			 Call	 PrtStr
+1   470	    042C			 CheckDisk_Err:
+1   471	    042C  66| 8D 36 1FC8r		 lea	 esi, Err
+1   472	    0431  E8 FE9E			 Call	 PrtStr
+1   473	    0434  66| 8D 36 1FD8r		 lea	 esi, Exit
+1   474	    0439  E8 FE96			 Call	 PrtStr
+1   475	    043C  66| 8D 36 1FBAr		 lea	 esi, NR
+1   476	    0441  E8 FE8E			 Call	 PrtStr
+1   477	    0444  66| 8D 36 1F70r		 lea	 esi, ProvErr
+1   478	    0449  E8 FE86			 Call	 PrtStr
+1   479	    044C  8A F4				 mov	 dh, ah
+1   480	    044E  E8 FE63			 Call	 Print__Hex
+1   481	    0451  66| 8D 36 1F6Er		 lea	 esi, Punkt
+1   482	    0456  E8 FE79			 Call	 PrtStr
+1   483	    0459  66| 8D 36 1F94r		 lea	 esi, ProvErr_
+1   484	    045E  E8 FE71			 Call	 PrtStr
+1   485	    0461  E8 FF3B			 Call	 ReadKey
+1   486	    0464  83 C4	02			 add	 sp, 2
+1   487	    0467  C3				 ret
+1   488	    0468  ??			 Sektor		 db	 ?
+1   489	    0469  00000000		 Soucet		 dd	 0
+1   490	    046D  ????????		 _ABMSumCRC	 dd	 ?
+1   491	    0471			 CheckDisk	 endp
+1   492
+1   493
+    494					 include Install.inc
+1   495		  =0016			 Sektoru = 22
+1   496					 include STD_VDR.inc
+2   497	    0471  00 00	00 00 00 01 01+	 V_DAC_STD:	 db	 00H,00H,00H,00H,00H,01H,01H,01H,03H,01H,02H,05H,02H,02H,07H,02H,   +
+    498		  01 03	01 02 05 02 02+	 03H,09H,03H,04H,0BH,03H,04H,0CH,04H,05H,0EH,04H,06H,10H,05H,06H,12H,05H,07H,14H
+    499		  07 02	03 09 03 04 0B+
+    500		  03 04	0C 04 05 0E 04+
+    501		  06 10	05 06 12 05 07+
+    502		  14
+2   503	    0495  06 08	15 06 08 17 07+			 db	 06H,08H,15H,06H,08H,17H,07H,09H,19H,07H,0AH,1BH,08H,0AH,1DH,09H,   +
+    504		  09 19	07 0A 1B 08 0A+	 0CH,1CH,09H,0EH,1BH,0AH,10H,1AH,0BH,12H,19H,0CH,14H,18H,0DH,16H,17H,0DH,18H,17H
+    505		  1D 09	0C 1C 09 0E 1B+
+    506		  0A 10	1A 0B 12 19 0C+
+    507		  14 18	0D 16 17 0D 18+
+    508		  17
+2   509	    04B9  0E 1A	16 0F 1C 15 10+			 db	 0EH,1AH,16H,0FH,1CH,15H,10H,1EH,14H,11H,20H,13H,11H,22H,12H,12H,   +
+    510		  1E 14	11 20 13 11 22+	 24H,11H,13H,26H,11H,14H,28H,10H,15H,2AH,0FH,16H,2AH,11H,17H,2BH,13H,18H,2BH,16H
+    511		  12 12	24 11 13 26 11+
+    512		  14 28	10 15 2A 0F 16+
+    513		  2A 11	17 2B 13 18 2B+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 10
+install.asm
+
+
+
+    514		  16
+2   515	    04DD  19 2C	18 1A 2C 1A 1B+			 db	 19H,2CH,18H,1AH,2CH,1AH,1BH,2DH,1CH,1CH,2DH,1FH,1DH,2EH,21H,1EH,   +
+    516		  2D 1C	1C 2D 1F 1D 2E+	 2FH,23H,1FH,2FH,26H,20H,30H,28H,21H,30H,2AH,22H,31H,2CH,23H,31H,2FH,24H,32H,31H
+    517		  21 1E	2F 23 1F 2F 26+
+    518		  20 30	28 21 30 2A 22+
+    519		  31 2C	23 31 2F 24 32+
+    520		  31
+2   521	    0501  25 32	33 26 30 30 27+			 db	 25H,32H,33H,26H,30H,30H,27H,2DH,2DH,28H,2BH,2AH,28H,28H,27H,29H,   +
+    522		  2D 2D	28 2B 2A 28 28+	 26H,25H,2AH,23H,22H,2BH,21H,1FH,2CH,1EH,1CH,2DH,1BH,19H,2EH,19H,16H,2FH,16H,13H
+    523		  27 29	26 25 2A 23 22+
+    524		  2B 21	1F 2C 1E 1C 2D+
+    525		  1B 19	2E 19 16 2F 16+
+    526		  13
+2   527	    0525  2F 14	10 30 11 0D 31+			 db	 2FH,14H,10H,30H,11H,0DH,31H,0FH,0AH,32H,0CH,07H,33H,0AH,04H,32H,   +
+    528		  0F 0A	32 0C 07 33 0A+	 0AH,06H,31H,0BH,08H,2FH,0CH,0AH,2EH,0DH,0CH,2DH,0DH,0EH,2CH,0EH,10H,2BH,0FH,12H
+    529		  04 32	0A 06 31 0B 08+
+    530		  2F 0C	0A 2E 0D 0C 2D+
+    531		  0D 0E	2C 0E 10 2B 0F+
+    532		  12
+2   533	    0549  2A 10	14 28 11 16 27+			 db	 2AH,10H,14H,28H,11H,16H,27H,11H,18H,26H,12H,1AH,25H,13H,1CH,24H,   +
+    534		  11 18	26 12 1A 25 13+	 14H,1EH,22H,14H,20H,21H,15H,22H,20H,16H,24H,21H,16H,22H,21H,17H,20H,22H,17H,1DH
+    535		  1C 24	14 1E 22 14 20+
+    536		  21 15	22 20 16 24 21+
+    537		  16 22	21 17 20 22 17+
+    538		  1D
+2   539	    056D  22 17	1B 22 18 19 23+			 db	 22H,17H,1BH,22H,18H,19H,23H,18H,17H,23H,19H,14H,24H,19H,12H,24H,   +
+    540		  18 17	23 19 14 24 19+	 19H,10H,25H,1AH,0DH,25H,1AH,0BH,26H,1AH,09H,26H,1BH,07H,27H,1BH,04H,27H,1CH,02H
+    541		  12 24	19 10 25 1A 0D+
+    542		  25 1A	0B 26 1A 09 26+
+    543		  1B 07	27 1B 04 27 1C+
+    544		  02
+2   545	    0591  28 1C	00 29 1E 03 2A+			 db	 28H,1CH,00H,29H,1EH,03H,2AH,20H,07H,2BH,21H,0AH,2CH,23H,0EH,2DH,   +
+    546		  20 07	2B 21 0A 2C 23+	 25H,12H,2EH,27H,15H,2FH,29H,19H,30H,2BH,1CH,31H,2CH,20H,33H,2EH,24H,34H,30H,27H
+    547		  0E 2D	25 12 2E 27 15+
+    548		  2F 29	19 30 2B 1C 31+
+    549		  2C 20	33 2E 24 34 30+
+    550		  27
+2   551	    05B5  35 32	2B 36 34 2E 37+			 db	 35H,32H,2BH,36H,34H,2EH,37H,35H,32H,38H,37H,36H,39H,39H,39H,38H,   +
+    552		  35 32	38 37 36 39 39+	 38H,38H,36H,36H,36H,34H,34H,34H,33H,33H,33H,31H,31H,31H,30H,30H,30H,2EH,2EH,2EH
+    553		  39 38	38 38 36 36 36+
+    554		  34 34	34 33 33 33 31+
+    555		  31 31	30 30 30 2E 2E+
+    556		  2E
+2   557	    05D9  2C 2C	2C 2B 2B 2B 29+			 db	 2CH,2CH,2CH,2BH,2BH,2BH,29H,29H,29H,28H,28H,28H,26H,26H,26H,24H,   +
+    558		  29 29	28 28 28 26 26+	 24H,24H,23H,23H,23H,21H,21H,21H,20H,20H,20H,1EH,1EH,22H,1CH,1CH,24H,1AH,1AH,26H
+    559		  26 24	24 24 23 23 23+
+    560		  21 21	21 20 20 20 1E+
+    561		  1E 22	1C 1C 24 1A 1A+
+    562		  26
+2   563	    05FD  18 18	28 16 16 2A 14+			 db	 18H,18H,28H,16H,16H,2AH,14H,14H,2CH,12H,12H,2EH,10H,10H,30H,0EH,   +
+    564		  14 2C	12 12 2E 10 10+	 0EH,31H,0CH,0CH,33H,0AH,0AH,35H,08H,08H,37H,06H,06H,39H,04H,04H,3BH,02H,02H,3DH
+    565		  30 0E	0E 31 0C 0C 33+
+    566		  0A 0A	35 08 08 37 06+
+    567		  06 39	04 04 3B 02 02+
+    568		  3D
+2   569	    0621  00 00	3F 00 04 3B 00+			 db	 00H,00H,3FH,00H,04H,3BH,00H,08H,37H,00H,0CH,33H,00H,10H,2FH,00H,   +
+    570		  08 37	00 0C 33 00 10+	 14H,2BH,00H,18H,27H,00H,1CH,23H,00H,20H,20H,00H,23H,1CH,00H,27H,18H,00H,2BH,14H
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 11
+install.asm
+
+
+
+    571		  2F 00	14 2B 00 18 27+
+    572		  00 1C	23 00 20 20 00+
+    573		  23 1C	00 27 18 00 2B+
+    574		  14
+2   575	    0645  00 2F	10 00 33 0C 00+			 db	 00H,2FH,10H,00H,33H,0CH,00H,37H,08H,00H,3BH,04H,00H,3FH,00H,00H,   +
+    576		  37 08	00 3B 04 00 3F+	 3FH,04H,00H,3FH,08H,00H,3FH,0CH,00H,3FH,10H,00H,3FH,14H,00H,3FH,18H,00H,3FH,1CH
+    577		  00 00	3F 04 00 3F 08+
+    578		  00 3F	0C 00 3F 10 00+
+    579		  3F 14	00 3F 18 00 3F+
+    580		  1C
+2   581	    0669  00 3F	20 00 3F 23 00+			 db	 00H,3FH,20H,00H,3FH,23H,00H,3FH,27H,00H,3FH,2BH,00H,3FH,2FH,00H,   +
+    582		  3F 27	00 3F 2B 00 3F+	 3FH,33H,00H,3FH,37H,00H,3FH,3BH,00H,3FH,3FH,04H,3BH,3BH,08H,37H,37H,0CH,33H,33H
+    583		  2F 00	3F 33 00 3F 37+
+    584		  00 3F	3B 00 3F 3F 04+
+    585		  3B 3B	08 37 37 0C 33+
+    586		  33
+2   587	    068D  10 2F	2F 14 2B 2B 18+			 db	 10H,2FH,2FH,14H,2BH,2BH,18H,27H,27H,1CH,23H,23H,20H,20H,20H,23H,   +
+    588		  27 27	1C 23 23 20 20+	 1CH,1CH,27H,18H,18H,2BH,14H,14H,2FH,10H,10H,33H,0CH,0CH,37H,08H,08H,3BH,04H,04H
+    589		  20 23	1C 1C 27 18 18+
+    590		  2B 14	14 2F 10 10 33+
+    591		  0C 0C	37 08 08 3B 04+
+    592		  04
+2   593	    06B1  3F 00	00 3F 00 04 3F+			 db	 3FH,00H,00H,3FH,00H,04H,3FH,00H,08H,3FH,00H,0CH,3FH,00H,10H,3FH,   +
+    594		  00 08	3F 00 0C 3F 00+	 00H,14H,3FH,00H,18H,3FH,00H,1CH,3FH,00H,20H,3FH,00H,23H,3FH,00H,27H,3FH,00H,2BH
+    595		  10 3F	00 14 3F 00 18+
+    596		  3F 00	1C 3F 00 20 3F+
+    597		  00 23	3F 00 27 3F 00+
+    598		  2B
+2   599	    06D5  3F 00	2F 3F 00 33 3F+			 db	 3FH,00H,2FH,3FH,00H,33H,3FH,00H,37H,3FH,00H,3BH,3FH,00H,3FH,3FH,   +
+    600		  00 37	3F 00 3B 3F 00+	 04H,3BH,3FH,08H,37H,3FH,0CH,33H,3FH,10H,2FH,3FH,14H,2BH,3FH,18H,27H,3FH,1CH,23H
+    601		  3F 3F	04 3B 3F 08 37+
+    602		  3F 0C	33 3F 10 2F 3F+
+    603		  14 2B	3F 18 27 3F 1C+
+    604		  23
+2   605	    06F9  3F 20	20 3F 23 1C 3F+			 db	 3FH,20H,20H,3FH,23H,1CH,3FH,27H,18H,3FH,2BH,14H,3FH,2FH,10H,3FH,   +
+    606		  27 18	3F 2B 14 3F 2F+	 33H,0CH,3FH,37H,08H,3FH,3BH,04H,3FH,3FH,00H,3FH,3FH,04H,3FH,3FH,08H,3FH,3FH,0CH
+    607		  10 3F	33 0C 3F 37 08+
+    608		  3F 3B	04 3F 3F 00 3F+
+    609		  3F 04	3F 3F 08 3F 3F+
+    610		  0C
+2   611	    071D  3F 3F	10 3F 3F 14 3F+			 db	 3FH,3FH,10H,3FH,3FH,14H,3FH,3FH,18H,3FH,3FH,1CH,3FH,3FH,20H,3FH,   +
+    612		  3F 18	3F 3F 1C 3F 3F+	 3FH,23H,3FH,3FH,27H,3FH,3FH,2BH,3FH,3FH,2FH,3FH,3FH,33H,3FH,3FH,37H,3FH,3FH,3BH
+    613		  20 3F	3F 23 3F 3F 27+
+    614		  3F 3F	2B 3F 3F 2F 3F+
+    615		  3F 33	3F 3F 37 3F 3F+
+    616		  3B
+2   617	    0741  3F 3F	3F 3B 3B 3B 37+			 db	 3FH,3FH,3FH,3BH,3BH,3BH,37H,37H,37H,33H,33H,33H,2EH,2EH,2EH,2AH,   +
+    618		  37 37	33 33 33 2E 2E+	 2AH,2AH,26H,26H,26H,22H,22H,22H,1DH,1DH,1DH,19H,19H,19H,15H,15H,15H,11H,11H,11H
+    619		  2E 2A	2A 2A 26 26 26+
+    620		  22 22	22 1D 1D 1D 19+
+    621		  19 19	15 15 15 11 11+
+    622		  11
+2   623	    0765  0C 0C	0C 08 08 08 04+			 db	 0CH,0CH,0CH,08H,08H,08H,04H,04H,04H,00H,00H,00H
+    624		  04 04	00 00 00
+2   625
+1   626					 include LOGO.inc
+2   627	    0771  00 00	00 00 00 00 00+	 Logo_Gr:	 db									    +
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 12
+install.asm
+
+
+
+    628		  00 00	00 00 00 8D 8D+	 "            çç     »     çç                †     †                 çç    —»     çç    "
+    629		  00 00	00 00 00 C8 00+
+    630		  00 00	00 00 8D 8D 00+
+    631		  00 00	00 00 00 00 00+
+    632		  00 00	00 00 00 00 00+
+    633		  00 A0	00 00 00 00 00+
+    634		  A0 00	00 00 00 00 00+
+    635		  00 00	00 00 00 00 00+
+    636		  00 00	00 00 8D 8D 00+
+    637		  00 00	00 D1 C8 00 00+
+    638		  00 00	00 8D 8D 00 00+
+    639		  00 00
+2   640	    07C7  00 00	00 00 00 00 BF+			 db									    +
+    641		  BF BF	BF BF A0 A0 A0+	 "      øøøøø†††††††† îîîî            ççççççççççççççç      øøøøøøøøøø      † íííí       "
+    642		  A0 A0	A0 A0 A0 00 94+
+    643		  94 94	94 00 00 00 00+
+    644		  00 00	00 00 00 00 00+
+    645		  00 8D	8D 8D 8D 8D 8D+
+    646		  8D 8D	8D 8D 8D 8D 8D+
+    647		  8D 8D	00 00 00 00 00+
+    648		  00 BF	BF BF BF BF BF+
+    649		  BF BF	BF BF 00 00 00+
+    650		  00 00	00 A0 00 92 92+
+    651		  92 92	00 00 00 00 00+
+    652		  00 00
+2   653	    081D  00 00	00 00 00 8D 8D+			 db									    +
+    654		  8D 8D	8D 8D 8D 8D 8D+	 "     ççççççççççççççç øøøøøøøøøøøøøø         êêêê            çç—‘‘”çç    øøøøøøøøøøøøøø"
+    655		  8D 8D	8D 8D 8D 8D 00+
+    656		  BF BF	BF BF BF BF BF+
+    657		  BF BF	BF BF BF BF BF+
+    658		  00 00	00 00 00 00 00+
+    659		  00 00	90 90 90 90 00+
+    660		  00 00	00 00 00 00 00+
+    661		  00 00	00 00 8D 8D D1+
+    662		  D4 D4	D3 8D 8D 00 00+
+    663		  00 00	BF BF BF BF BF+
+    664		  BF BF	BF BF BF BF BF+
+    665		  BF BF
+2   666	    0873  00 00	00 00 00 00 00+			 db									    +
+    667		  00 00	00 00 00 00 90+	 "             êêêê          »—çç‘‘‘”çç   øøøøøøøøøø                † åååå        »—””çç"
+    668		  90 90	90 00 00 00 00+
+    669		  00 00	00 00 00 00 C8+
+    670		  D1 8D	8D D4 D4 D4 D3+
+    671		  8D 8D	00 00 00 BF BF+
+    672		  BF BF	BF BF BF BF BF+
+    673		  BF 00	00 00 00 00 00+
+    674		  00 00	00 00 00 00 00+
+    675		  00 00	00 A0 00 8C 8C+
+    676		  8C 8C	00 00 00 00 00+
+    677		  00 00	00 C8 D1 D3 D3+
+    678		  8D 8D
+2   679	    08C9  D1 C8	D4 D3 8D 8D 00+			 db									    +
+    680		  00 00	BF BF BF BF BF+	 "—»‘”çç   øøøøøøøøøøøøø               ãããã      »—”‘‘‘çç—»‘ çç     çøøøøøøøøøøøøøø     "
+    681		  BF BF	BF BF BF BF BF+
+    682		  BF 00	00 00 00 00 00+
+    683		  00 00	00 00 00 00 00+
+    684		  00 00	8B 8B 8B 8B 00+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 13
+install.asm
+
+
+
+    685		  00 00	00 00 00 C8 D1+
+    686		  D3 D4	D4 D4 8D 8D D1+
+    687		  C8 D4	00 8D 8D 00 00+
+    688		  00 00	00 8D BF BF BF+
+    689		  BF BF	BF BF BF BF BF+
+    690		  BF BF	BF BF 00 00 00+
+    691		  00 00
+2   692	    091F  00 00	00 00 00 00 8B+			 db									    +
+    693		  8B 8B	8B 00 00 00 00+	 "      ãããã     —”‘‘—»»çç—»  çç     çç    øøøøøøøøøøøø        ––––    ”‘‘””———çç—»  çç "
+    694		  00 D1	D3 D4 D4 D1 C8+
+    695		  C8 8D	8D D1 C8 00 00+
+    696		  8D 8D	00 00 00 00 00+
+    697		  8D 8D	00 00 00 00 BF+
+    698		  BF BF	BF BF BF BF BF+
+    699		  BF BF	BF BF 00 00 00+
+    700		  00 00	00 00 00 D0 D0+
+    701		  D0 D0	00 00 00 00 D3+
+    702		  D4 D4	D3 D3 D1 D1 D1+
+    703		  8D 8D	D1 C8 00 00 8D+
+    704		  8D 00
+2   705	    0975  00 00	00 00 8D 8D 00+			 db									    +
+    706		  00 00	00 00 00 00 00+	 "    çç        øøøøøøøø††††††  ––––   ‘‘‘‘‘””””ççç»»çççç    çç       øøøøøøøø†      † –"
+    707		  BF BF	BF BF BF BF BF+
+    708		  BF A0	A0 A0 A0 A0 A0+
+    709		  00 00	D0 D0 D0 D0 00+
+    710		  00 00	D4 D4 D4 D4 D4+
+    711		  D3 D3	D3 D3 8D 8D 8D+
+    712		  C8 C8	8D 8D 8D 8D 00+
+    713		  00 00	00 8D 8D 00 00+
+    714		  00 00	00 00 00 BF BF+
+    715		  BF BF	BF BF BF BF A0+
+    716		  00 00	00 00 00 00 A0+
+    717		  00 D0
+2   718	    09CB  D0 D0	D0 00 00 00 D4+			 db									    +
+    719		  D4 D4	D4 D4 D4 D4 D4+	 "–––   ‘‘‘‘‘‘‘‘”‘ççççç—ççç  ççç    øøøøøøøøøø †      † ––––      ‘‘‘‘‘‘‘”ççç”—»çççççç ø"
+    720		  D3 D4	8D 8D 8D 8D 8D+
+    721		  D1 8D	8D 8D 00 00 8D+
+    722		  8D 8D	00 00 00 00 BF+
+    723		  BF BF	BF BF BF BF BF+
+    724		  BF BF	00 A0 00 00 00+
+    725		  00 00	00 A0 00 D0 D0+
+    726		  D0 D0	00 00 00 00 00+
+    727		  00 D4	D4 D4 D4 D4 D4+
+    728		  D4 D3	8D 8D 8D D3 D1+
+    729		  C8 8D	8D 8D 8D 8D 8D+
+    730		  00 BF
+2   731	    0A21  BF BF	BF BF BF BF BF+			 db									    +
+    732		  BF BF	00 00 00 00 00+	 "øøøøøøøøø      ††††††  ––––      »»‘‘‘‘‘‘‘‘‘”—» çççøøøøøøøøøø                 ––––    "
+    733		  00 A0	A0 A0 A0 A0 A0+
+    734		  00 00	D0 D0 D0 D0 00+
+    735		  00 00	00 00 00 C8 C8+
+    736		  D4 D4	D4 D4 D4 D4 D4+
+    737		  D4 D4	D3 D1 C8 00 8D+
+    738		  8D 8D	BF BF BF BF BF+
+    739		  BF BF	BF BF BF 00 00+
+    740		  00 00	00 00 00 00 00+
+    741		  00 00	00 00 00 00 00+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 14
+install.asm
+
+
+
+    742		  00 D0	D0 D0 D0 00 00+
+    743		  00 00
+2   744	    0A77  00 D1	D1 D1 00 00 00+			 db									    +
+    745		  D4 D4	D4 D4 D4 D4 D3+	 " ———   ‘‘‘‘‘‘”—»   øøøøøøøøøø                  ––––    ”””      ‘‘‘‘”—     øøøøøøøøøøø"
+    746		  D1 C8	00 00 00 BF BF+
+    747		  BF BF	BF BF BF BF BF+
+    748		  BF 00	00 00 00 00 00+
+    749		  00 00	00 00 00 00 00+
+    750		  00 00	00 00 00 D0 D0+
+    751		  D0 D0	00 00 00 00 D3+
+    752		  D3 D3	00 00 00 00 00+
+    753		  00 D4	D4 D4 D4 D3 D1+
+    754		  00 00	00 00 00 BF BF+
+    755		  BF BF	BF BF BF BF BF+
+    756		  BF BF
+2   757	    0ACD  BF BF	BF BF 00 00 00+			 db									    +
+    758		  00 A0	A0 A0 A0 A0 A0+	 "øøøø    ††††††  ––––   ‘‘‘»        ‘‘ççççç      øøøøøøøøøøøøøø†      † ––––   ‘”—»    "
+    759		  00 00	D0 D0 D0 D0 00+
+    760		  00 00	D4 D4 D4 C8 00+
+    761		  00 00	00 00 00 00 00+
+    762		  D4 D4	8D 8D 8D 8D 8D+
+    763		  00 00	00 00 00 00 BF+
+    764		  BF BF	BF BF BF BF BF+
+    765		  BF BF	BF BF BF BF A0+
+    766		  00 00	00 00 00 00 A0+
+    767		  00 D0	D0 D0 D0 00 00+
+    768		  00 D4	D3 D1 C8 00 00+
+    769		  00 00
+2   770	    0B23  00 00	00 00 8D 8D 8D+			 db									    +
+    771		  8D 8D	8D 8D 8D 8D 00+	 "    ççççççççç           øøøøøøø†      † ––––   ‘”—»»»»»»»»ççç”—»  ççç              øøø"
+    772		  00 00	00 00 00 00 00+
+    773		  00 00	00 BF BF BF BF+
+    774		  BF BF	BF A0 00 00 00+
+    775		  00 00	00 A0 00 D0 D0+
+    776		  D0 D0	00 00 00 D4 D3+
+    777		  D1 C8	C8 C8 C8 C8 C8+
+    778		  C8 C8	8D 8D 8D D3 D1+
+    779		  C8 00	00 8D 8D 8D 00+
+    780		  00 00	00 00 00 00 00+
+    781		  00 00	00 00 00 00 BF+
+    782		  BF BF
+2   783	    0B79  BF A0	A0 A0 A0 A0 A0+			 db									    +
+    784		  00 00	D0 D0 D0 D0 00+	 "ø††††††  ––––   ‘”————————çç—‘”—»    çç                         ––––   ‘””””””””ççç”‘”"
+    785		  00 00	D4 D3 D1 D1 D1+
+    786		  D1 D1	D1 D1 D1 8D 8D+
+    787		  D1 D4	D3 D1 C8 00 00+
+    788		  00 00	8D 8D 00 00 00+
+    789		  00 00	00 00 00 00 00+
+    790		  00 00	00 00 00 00 00+
+    791		  00 00	00 00 00 00 00+
+    792		  00 D0	D0 D0 D0 00 00+
+    793		  00 D4	D3 D3 D3 D3 D3+
+    794		  D3 D3	D3 8D 8D 8D D3+
+    795		  D4 D3
+2   796	    0BCF  D1 C8	00 00 00 00 8D+			 db									    +
+    797		  8D 8D	00 00 00 00 00+	 "—»    ççç                        »»»»   ‘‘‘‘‘‘‘‘‘çç‘‘‘”—»     çç                      "
+    798		  00 00	00 00 00 00 00+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 15
+install.asm
+
+
+
+    799		  00 00	00 00 00 00 00+
+    800		  00 00	00 00 00 C8 C8+
+    801		  C8 C8	00 00 00 D4 D4+
+    802		  D4 D4	D4 D4 D4 D4 D4+
+    803		  8D 8D	D4 D4 D4 D3 D1+
+    804		  C8 00	00 00 00 00 8D+
+    805		  8D 00	00 00 00 00 00+
+    806		  00 00	00 00 00 00 00+
+    807		  00 00	00 00 00 00 00+
+    808		  00 00
+2   809	    0C25  A0 00	C4 C4 C4 C4 00+			 db									    +
+    810		  00 00	D4 D4 D4 D4 D4+	 "† ƒƒƒƒ   ‘‘‘‘‘‘‘‘‘çç‘‘‘”—»     çç       øøøøøø           »»»»   ‘‘‘‘‘‘‘‘‘çç‘‘‘”—      "
+    811		  D4 D4	D4 D4 8D 8D D4+
+    812		  D4 D4	D3 D1 C8 00 00+
+    813		  00 00	00 8D 8D 00 00+
+    814		  00 00	00 00 00 BF BF+
+    815		  BF BF	BF BF 00 00 00+
+    816		  00 00	00 00 00 00 00+
+    817		  00 C8	C8 C8 C8 00 00+
+    818		  00 D4	D4 D4 D4 D4 D4+
+    819		  D4 D4	D4 8D 8D D4 D4+
+    820		  D4 D3	D1 00 00 00 00+
+    821		  00 00
+2   822	    0C7B  8D 8D	00 00 00 00 00+			 db									    +
+    823		  BF BF	BF BF BF BF BF+	 "çç     øøøøøøøøø          ¿¿¿¿   ‘”—»     ççç ‘”      ççç    øøøøøøøøøøø         ¿¿¿¿ "
+    824		  BF BF	00 00 00 00 00+
+    825		  00 00	00 00 00 C0 C0+
+    826		  C0 C0	00 00 00 D4 D3+
+    827		  D1 C8	00 00 00 00 00+
+    828		  8D 8D	8D 00 D4 D3 00+
+    829		  00 00	00 00 00 8D 8D+
+    830		  8D 00	00 00 00 BF BF+
+    831		  BF BF	BF BF BF BF BF+
+    832		  BF BF	00 00 00 00 00+
+    833		  00 00	00 00 C0 C0 C0+
+    834		  C0 00
+2   835	    0CD1  00 00	D4 D3 D1 C8 C8+			 db									    +
+    836		  C8 00	00 00 00 8D 8D+	 "  ‘”—»»»    çç ‘       çç    øøøø     øøøø††††††  ¿¿¿¿   ‘”———      ççç     ççç    øøø"
+    837		  00 D4	00 00 00 00 00+
+    838		  00 00	8D 8D 00 00 00+
+    839		  00 BF	BF BF BF 00 00+
+    840		  00 00	00 BF BF BF BF+
+    841		  A0 A0	A0 A0 A0 A0 00+
+    842		  00 C0	C0 C0 C0 00 00+
+    843		  00 D4	D3 D1 D1 D1 00+
+    844		  00 00	00 00 00 8D 8D+
+    845		  8D 00	00 00 00 00 8D+
+    846		  8D 8D	00 00 00 00 BF+
+    847		  BF BF
+2   848	    0D27  BF 00	00 00 00 00 00+			 db									    +
+    849		  00 BF	BF A0 00 00 00+	 "ø       øø†      † ????   ‘”””        ççççççççç     øøø        øø†      † ????   ‘‘‘» "
+    850		  00 00	00 A0 00 3F 3F+
+    851		  3F 3F	00 00 00 D4 D3+
+    852		  D3 D3	00 00 00 00 00+
+    853		  00 00	00 8D 8D 8D 8D+
+    854		  8D 8D	8D 8D 8D 00 00+
+    855		  00 00	00 BF BF BF 00+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 16
+install.asm
+
+
+
+    856		  00 00	00 00 00 00 00+
+    857		  BF BF	A0 00 00 00 00+
+    858		  00 00	A0 00 3F 3F 3F+
+    859		  3F 00	00 00 D4 D4 D4+
+    860		  C8 00
+2   861	    0D7D  00 00	00 00 00 00 00+			 db									    +
+    862		  00 00	8D 8D 8D 8D 8D+	 "         ççççç       øøø        øøø††††††  ‹‹‹‹    ”—»»»»»»»»»»»”—»         øøø       "
+    863		  00 00	00 00 00 00 00+
+    864		  BF BF	BF 00 00 00 00+
+    865		  00 00	00 00 BF BF BF+
+    866		  A0 A0	A0 A0 A0 A0 00+
+    867		  00 DC	DC DC DC 00 00+
+    868		  00 00	D3 D1 C8 C8 C8+
+    869		  C8 C8	C8 C8 C8 C8 C8+
+    870		  C8 D3	D1 C8 00 00 00+
+    871		  00 00	00 00 00 00 BF+
+    872		  BF BF	00 00 00 00 00+
+    873		  00 00
+2   874	    0DD3  BF BF	BF BF 00 00 00+			 db									    +
+    875		  00 00	00 00 00 DD DD+	 "øøøø        ››››   ‘”———————————‘”—»         øøøøøøøøøøøøø         ››››   ‘”””””””””””"
+    876		  DD DD	00 00 00 D4 D3+
+    877		  D1 D1	D1 D1 D1 D1 D1+
+    878		  D1 D1	D1 D1 D4 D3 D1+
+    879		  C8 00	00 00 00 00 00+
+    880		  00 00	00 BF BF BF BF+
+    881		  BF BF	BF BF BF BF BF+
+    882		  BF BF	00 00 00 00 00+
+    883		  00 00	00 00 DD DD DD+
+    884		  DD 00	00 00 D4 D3 D3+
+    885		  D3 D3	D3 D3 D3 D3 D3+
+    886		  D3 D3
+2   887	    0E29  D3 D4	8D 8D 8D 8D 8D+			 db									    +
+    888		  00 00	00 00 00 00 00+	 "”‘ççççç        øøøøøøøøøøøøø††††††  ﬁﬁﬁﬁ   ‘‘‘‘‘‘‘‘‘‘‘‘ççççççççç      øøøøøøøøøøøø†   "
+    889		  00 BF	BF BF BF BF BF+
+    890		  BF BF	BF BF BF BF BF+
+    891		  A0 A0	A0 A0 A0 A0 00+
+    892		  00 DE	DE DE DE 00 00+
+    893		  00 D4	D4 D4 D4 D4 D4+
+    894		  D4 D4	D4 D4 D4 D4 8D+
+    895		  8D 8D	8D 8D 8D 8D 8D+
+    896		  8D 00	00 00 00 00 00+
+    897		  BF BF	BF BF BF BF BF+
+    898		  BF BF	BF BF BF A0 00+
+    899		  00 00
+2   900	    0E7F  00 00	00 A0 00 DE DE+			 db									    +
+    901		  DE DE	00 00 00 D4 D4+	 "   † ﬁﬁﬁﬁ   ‘‘‘‘‘‘‘‘‘‘‘ççç”—»  ççç               øø†      † ‡‡‡‡   ‘‘‘‘‘‘‘‘‘‘çç‘‘”—   "
+    902		  D4 D4	D4 D4 D4 D4 D4+
+    903		  D4 D4	8D 8D 8D D3 D1+
+    904		  C8 00	00 8D 8D 8D 00+
+    905		  00 00	00 00 00 00 00+
+    906		  00 00	00 00 00 00 00+
+    907		  BF BF	A0 00 00 00 00+
+    908		  00 00	A0 00 E0 E0 E0+
+    909		  E0 00	00 00 D4 D4 D4+
+    910		  D4 D4	D4 D4 D4 D4 D4+
+    911		  8D 8D	D4 D4 D3 D1 00+
+    912		  00 00
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 17
+install.asm
+
+
+
+2   913	    0ED5  00 00	8D 8D 00 00 00+			 db									    +
+    914		  00 00	00 00 00 00 00+	 "  çç                 ††††††  ‡‡‡‡   ‘”—»   ‘”ççç»‘”      ççç                        ‡‡"
+    915		  00 00	00 00 00 00 00+
+    916		  A0 A0	A0 A0 A0 A0 00+
+    917		  00 E0	E0 E0 E0 00 00+
+    918		  00 D4	D3 D1 C8 00 00+
+    919		  00 D4	D3 8D 8D 8D C8+
+    920		  D4 D3	00 00 00 00 00+
+    921		  00 8D	8D 8D 00 00 00+
+    922		  00 00	00 00 00 00 00+
+    923		  00 00	00 00 00 00 00+
+    924		  00 00	00 00 00 00 00+
+    925		  E0 E0
+2   926	    0F2B  E0 E0	00 00 00 D4 D3+			 db									    +
+    927		  D1 C8	C8 00 00 D4 D3+	 "‡‡   ‘”—»»  ‘”çç——‘»       çç  øøøøøøøøøøøøø         ‡‡‡‡   ‘”——»»»‘‘çç”——»»      çç  "
+    928		  8D 8D	D1 D1 D4 C8 00+
+    929		  00 00	00 00 00 00 8D+
+    930		  8D 00	00 BF BF BF BF+
+    931		  BF BF	BF BF BF BF BF+
+    932		  BF BF	00 00 00 00 00+
+    933		  00 00	00 00 E0 E0 E0+
+    934		  E0 00	00 00 D4 D3 D1+
+    935		  D1 C8	C8 C8 D4 D4 8D+
+    936		  8D D3	D1 D1 C8 C8 00+
+    937		  00 00	00 00 00 8D 8D+
+    938		  00 00
+2   939	    0F81  BF BF	BF BF BF BF BF+			 db									    +
+    940		  BF BF	BF BF BF BF BF+	 "øøøøøøøøøøøøøø        ‡‡‡‡   ‘””————‘‘çç””——»»     çç  øøøøøøøøøøøøø †     † ‡‡‡‡   ‘‘"
+    941		  00 00	00 00 00 00 00+
+    942		  00 E0	E0 E0 E0 00 00+
+    943		  00 D4	D3 D3 D1 D1 D1+
+    944		  D1 D4	D4 8D 8D D3 D3+
+    945		  D1 D1	C8 C8 00 00 00+
+    946		  00 00	8D 8D 00 00 BF+
+    947		  BF BF	BF BF BF BF BF+
+    948		  BF BF	BF BF BF 00 A0+
+    949		  00 00	00 00 00 A0 00+
+    950		  E0 E0	E0 E0 00 00 00+
+    951		  D4 D4
+2   952	    0FD7  D3 D3	D3 D3 D4 D4 D4+			 db									    +
+    953		  8D 8D	8D D3 D3 D1 D1+	 "””””‘‘‘ççç””——»    ççç   øøøøøø      †††††††† ‡‡‡‡   ‘‘‘‘‘‘‘‘ ‘çç‘””—»    çç    øøøø  "
+    954		  C8 00	00 00 00 8D 8D+
+    955		  8D 00	00 00 BF BF BF+
+    956		  BF BF	BF 00 00 00 00+
+    957		  00 00	A0 A0 A0 A0 A0+
+    958		  A0 A0	A0 00 E0 E0 E0+
+    959		  E0 00	00 00 D4 D4 D4+
+    960		  D4 D4	D4 D4 D4 00 D4+
+    961		  8D 8D	D4 D3 D3 D1 C8+
+    962		  00 00	00 00 8D 8D 00+
+    963		  00 00	00 BF BF BF BF+
+    964		  00 00
+2   965	    102D  00 00	00 00 00 00 00+			 db									    +
+    966		  00 00	00 00 00 00 A0+	 "             † ‡‡‡‡    ‘‘‘‘‘‘    ççç”—»  ççç    øøøø                           ‘‘‘‘   "
+    967		  00 E0	E0 E0 E0 00 00+
+    968		  00 00	D4 D4 D4 D4 D4+
+    969		  D4 00	00 00 00 8D 8D+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 18
+install.asm
+
+
+
+    970		  8D D3	D1 C8 00 00 8D+
+    971		  8D 8D	00 00 00 00 BF+
+    972		  BF BF	BF 00 00 00 00+
+    973		  00 00	00 00 00 00 00+
+    974		  00 00	00 00 00 00 00+
+    975		  20 20	20 20 00 00 00+
+    976		  00 00	D4 D4 D4 D4 00+
+    977		  00 00
+2   978	    1083  00 00	00 8D 8D 8D 8D+			 db	 "   ççççççççç     øøø                   			    +
+    979		  8D 8D	8D 8D 8D 00 00+	       »         ‘ççççç       øøø           "
+    980		  00 00	00 BF BF BF 00+
+    981		  00 00	00 00 00 00 00+
+    982		  00 00	00 00 00 00 00+
+    983		  00 00	00 00 20 20 20+
+    984		  20 00	00 00 00 00 00+
+    985		  C8 00	00 00 00 00 00+
+    986		  00 00	00 D4 8D 8D 8D+
+    987		  8D 8D	00 00 00 00 00+
+    988		  00 00	BF BF BF 00 00+
+    989		  00 00	00 00 00 00 00+
+    990		  00 00
+2   991	    10D9  A0 A0	A0 A0 A0 A0 00+			 db									    +
+    992		  00 A0	A0 A0 A0 00 00+	 "††††††  ††††     —»         ‘ —»         øøøøøøøøøøøøø†      † ††††    ”—»»»»»»»»»»»”—"
+    993		  00 00	00 D1 C8 00 00+
+    994		  00 00	00 00 00 00 00+
+    995		  D4 00	D1 C8 00 00 00+
+    996		  00 00	00 00 00 00 BF+
+    997		  BF BF	BF BF BF BF BF+
+    998		  BF BF	BF BF BF A0 00+
+    999		  00 00	00 00 00 A0 00+
+   1000		  A0 A0	A0 A0 00 00 00+
+   1001		  00 D3	D1 C8 C8 C8 C8+
+   1002		  C8 C8	C8 C8 C8 C8 C8+
+   1003		  D3 D1
+2  1004	    112F  C8 00	00 00 00 00 00+			 db									    +
+   1005		  00 00	00 00 BF BF BF+	 "»          øøøøøøøøøøøø†      † ††††   ‘”———————çççççç—»           øøøøøøøøøøø †††††† "
+   1006		  BF BF	BF BF BF BF BF+
+   1007		  BF BF	A0 00 00 00 00+
+   1008		  00 00	A0 00 A0 A0 A0+
+   1009		  A0 00	00 00 D4 D3 D1+
+   1010		  D1 D1	D1 D1 D1 D1 8D+
+   1011		  8D 8D	8D 8D 8D D1 C8+
+   1012		  00 00	00 00 00 00 00+
+   1013		  00 00	00 00 BF BF BF+
+   1014		  BF BF	BF BF BF BF BF+
+   1015		  BF 00	A0 A0 A0 A0 A0+
+   1016		  A0 00
+2  1017	    1185  00 A4	A4 A4 A4 00 00+			 db									    +
+   1018		  00 D4	D3 D3 D3 D3 D3+	 " §§§§   ‘””””””””çççççç—»                               ®®®®   ‘‘‘‘‘‘‘‘‘çç‘‘‘”—»     ç"
+   1019		  D3 D3	D3 8D 8D 8D 8D+
+   1020		  8D 8D	D1 C8 00 00 00+
+   1021		  00 00	00 00 00 00 00+
+   1022		  00 00	00 00 00 00 00+
+   1023		  00 00	00 00 00 00 00+
+   1024		  00 00	00 00 00 00 00+
+   1025		  A8 A8	A8 A8 00 00 00+
+   1026		  D4 D4	D4 D4 D4 D4 D4+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 19
+install.asm
+
+
+
+   1027		  D4 D4	8D 8D D4 D4 D4+
+   1028		  D3 D1	C8 00 00 00 00+
+   1029		  00 8D
+2  1030	    11DB  8D 00	00 00 00 00 00+			 db									    +
+   1031		  00 00	00 00 00 00 00+	 "ç                        ®®®®   ‘‘‘‘‘‘‘‘‘çç‘‘‘”—»     çç       øøøøøø           ®®®®  "
+   1032		  00 00	00 00 00 00 00+
+   1033		  00 00	00 00 A8 A8 A8+
+   1034		  A8 00	00 00 D4 D4 D4+
+   1035		  D4 D4	D4 D4 D4 D4 8D+
+   1036		  8D D4	D4 D4 D3 D1 C8+
+   1037		  00 00	00 00 00 8D 8D+
+   1038		  00 00	00 00 00 00 00+
+   1039		  BF BF	BF BF BF BF 00+
+   1040		  00 00	00 00 00 00 00+
+   1041		  00 00	00 A8 A8 A8 A8+
+   1042		  00 00
+2  1043	    1231  00 D4	D4 D4 D4 D4 D4+			 db									    +
+   1044		  D4 D4	D4 8D 8D D4 D4+	 " ‘‘‘‘‘‘‘‘‘çç‘‘‘”—»     çç     øøøøøøøøø          ®®®®   ‘”—» —‘””ççççççççççççççç    øø"
+   1045		  D4 D3	D1 C8 00 00 00+
+   1046		  00 00	8D 8D 00 00 00+
+   1047		  00 00	BF BF BF BF BF+
+   1048		  BF BF	BF BF 00 00 00+
+   1049		  00 00	00 00 00 00 00+
+   1050		  A8 A8	A8 A8 00 00 00+
+   1051		  D4 D3	D1 C8 00 D1 D4+
+   1052		  D3 D3	8D 8D 8D 8D 8D+
+   1053		  8D 8D	8D 8D 8D 8D 8D+
+   1054		  8D 8D	8D 00 00 00 00+
+   1055		  BF BF
+2  1056	    1287  BF BF	BF BF BF BF BF+			 db									    +
+   1057		  BF BF	00 00 00 00 00+	 "øøøøøøøøø         ®®®®   ‘”—»”‘‘‘”ççççççççççççççç   øøøø     øøøø        ∞∞∞∞   ‘”—‘‘‘"
+   1058		  00 00	00 00 A8 A8 A8+
+   1059		  A8 00	00 00 D4 D3 D1+
+   1060		  C8 D3	D4 D4 D4 D3 8D+
+   1061		  8D 8D	8D 8D 8D 8D 8D+
+   1062		  8D 8D	8D 8D 8D 8D 8D+
+   1063		  00 00	00 BF BF BF BF+
+   1064		  00 00	00 00 00 BF BF+
+   1065		  BF BF	00 00 00 00 00+
+   1066		  00 00	00 B0 B0 B0 B0+
+   1067		  00 00	00 D4 D3 D1 D4+
+   1068		  D4 D4
+2  1069	    12DD  D4 D4	D4 8D 8D 00 00+			 db									    +
+   1070		  D4 D3	D1 C8 00 00 00+	 "‘‘‘çç  ‘”—»     çç  øøøø       øøø        ∞∞∞∞   ‘””———   çç  ‘”—      çç  øøø        "
+   1071		  00 00	8D 8D 00 00 BF+
+   1072		  BF BF	BF 00 00 00 00+
+   1073		  00 00	00 BF BF BF 00+
+   1074		  00 00	00 00 00 00 00+
+   1075		  B0 B0	B0 B0 00 00 00+
+   1076		  D4 D3	D3 D1 D1 D1 00+
+   1077		  00 00	8D 8D 00 00 D4+
+   1078		  D3 D1	00 00 00 00 00+
+   1079		  00 8D	8D 00 00 BF BF+
+   1080		  BF 00	00 00 00 00 00+
+   1081		  00 00
+2  1082	    1333  BF BF	BF 00 00 00 00+			 db									    +
+   1083		  00 00	00 00 B0 B0 B0+	 "øøø        ∞∞∞∞   ‘‘”””    çç —‘”       çç  øøø        øøø        ∞∞∞∞   ‘‘‘‘     çççç"
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 20
+install.asm
+
+
+
+   1084		  B0 00	00 00 D4 D4 D3+
+   1085		  D3 D3	00 00 00 00 8D+
+   1086		  8D 00	D1 D4 D3 00 00+
+   1087		  00 00	00 00 00 8D 8D+
+   1088		  00 00	BF BF BF 00 00+
+   1089		  00 00	00 00 00 00 BF+
+   1090		  BF BF	00 00 00 00 00+
+   1091		  00 00	00 B0 B0 B0 B0+
+   1092		  00 00	00 D4 D4 D4 D4+
+   1093		  00 00	00 00 00 8D 8D+
+   1094		  8D 8D
+2  1095	    1389  8D 8D	00 C8 00 00 00+			 db									    +
+   1096		  00 00	00 00 00 00 BF+	 "çç »         øøø       øøøø        ∞∞∞∞     —»     çççççç—»         øøøøøøøøøøøøø     "
+   1097		  BF BF	00 00 00 00 00+
+   1098		  00 00	BF BF BF BF 00+
+   1099		  00 00	00 00 00 00 00+
+   1100		  B0 B0	B0 B0 00 00 00+
+   1101		  00 00	D1 C8 00 00 00+
+   1102		  00 00	8D 8D 8D 8D 8D+
+   1103		  8D D1	C8 00 00 00 00+
+   1104		  00 00	00 00 00 BF BF+
+   1105		  BF BF	BF BF BF BF BF+
+   1106		  BF BF	BF BF 00 00 00+
+   1107		  00 00
+2  1108	    13DF  00 00	00 00 B1 B1 B1+			 db									    +
+   1109		  B1 00	00 00 00 D3 D1+	 "    ±±±±    ”—»»         ”—»          øøøøøøøøøøøøø        ±±±±   ‘”——»»»      ‘”—»   "
+   1110		  C8 C8	00 00 00 00 00+
+   1111		  00 00	00 00 D3 D1 C8+
+   1112		  00 00	00 00 00 00 00+
+   1113		  00 00	00 BF BF BF BF+
+   1114		  BF BF	BF BF BF BF BF+
+   1115		  BF BF	00 00 00 00 00+
+   1116		  00 00	00 B1 B1 B1 B1+
+   1117		  00 00	00 D4 D3 D1 D1+
+   1118		  C8 C8	C8 00 00 00 00+
+   1119		  00 00	D4 D3 D1 C8 00+
+   1120		  00 00
+2  1121	    1435  00 00	00 00 00 00 00+			 db									    +
+   1122		  BF BF	BF BF BF BF BF+	 "       øøøøøøøøøøøøø        ≤≤≤≤   ‘””———»»     ‘”—»                    øøø        ≤≤≤"
+   1123		  BF BF	BF BF BF BF 00+
+   1124		  00 00	00 00 00 00 00+
+   1125		  B2 B2	B2 B2 00 00 00+
+   1126		  D4 D3	D3 D1 D1 D1 C8+
+   1127		  C8 00	00 00 00 00 D4+
+   1128		  D3 D1	C8 00 00 00 00+
+   1129		  00 00	00 00 00 00 00+
+   1130		  00 00	00 00 00 00 00+
+   1131		  00 00	BF BF BF 00 00+
+   1132		  00 00	00 00 00 00 B2+
+   1133		  B2 B2
+2  1134	    148B  B2 00	00 00 D4 D4 D3+			 db									    +
+   1135		  D3 D3	D1 D1 C8 C8 C8+	 "≤   ‘‘”””——»»»  ‘‘”—                                ≤≤≤≤   ‘‘‘‘””———»»‘‘‘”            "
+   1136		  00 00	D4 D4 D3 D1 00+
+   1137		  00 00	00 00 00 00 00+
+   1138		  00 00	00 00 00 00 00+
+   1139		  00 00	00 00 00 00 00+
+   1140		  00 00	00 00 00 00 00+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 21
+install.asm
+
+
+
+   1141		  00 00	00 B2 B2 B2 B2+
+   1142		  00 00	00 D4 D4 D4 D4+
+   1143		  D3 D3	D1 D1 D1 C8 C8+
+   1144		  D4 D4	D4 D3 00 00 00+
+   1145		  00 00	00 00 00 00 00+
+   1146		  00 00
+2  1147	    14E1  00 00	00 00 BF BF BF+			 db									    +
+   1148		  BF BF	BF 00 00 00 00+	 "    øøøøøø      øø   îîîî   ‘‘‘‘‘”””——‘»»‘               øøøøøøøøø     øøø  îîîî   ‘”‘"
+   1149		  00 00	BF BF 00 00 00+
+   1150		  94 94	94 94 00 00 00+
+   1151		  D4 D4	D4 D4 D4 D3 D3+
+   1152		  D3 D1	D1 D4 C8 C8 D4+
+   1153		  00 00	00 00 00 00 00+
+   1154		  00 00	00 00 00 00 00+
+   1155		  00 BF	BF BF BF BF BF+
+   1156		  BF BF	BF 00 00 00 00+
+   1157		  00 BF	BF BF 00 00 94+
+   1158		  94 94	94 00 00 00 D4+
+   1159		  D3 D4
+2  1160	    1537  D4 D4	D4 D4 D3 D3 D4+			 db									    +
+   1161		  D1 D1	C8 C8 00 00 C8+	 "‘‘‘‘””‘——»»  »           øøøøøøøøøøø    øøø  íííí   ‘  »‘‘‘‘‘””——»»—»          øøøø   "
+   1162		  00 00	00 00 00 00 00+
+   1163		  00 00	00 00 BF BF BF+
+   1164		  BF BF	BF BF BF BF BF+
+   1165		  BF 00	00 00 00 BF BF+
+   1166		  BF 00	00 92 92 92 92+
+   1167		  00 00	00 D4 00 00 C8+
+   1168		  D4 D4	D4 D4 D4 D3 D3+
+   1169		  D1 D1	C8 C8 D1 C8 00+
+   1170		  00 00	00 00 00 00 00+
+   1171		  00 00	BF BF BF BF 00+
+   1172		  00 00
+2  1173	    158D  00 00	BF BF BF BF 00+			 db									    +
+   1174		  00 00	BF BF BF 00 00+	 "  øøøø   øøø  êêêê     —» ‘‘‘‘‘””——”—»         øøøø       øøø   øøø  êêêê    ”—»»‘ ‘‘‘"
+   1175		  90 90	90 90 00 00 00+
+   1176		  00 00	D1 C8 00 D4 D4+
+   1177		  D4 D4	D4 D3 D3 D1 D1+
+   1178		  D3 D1	C8 00 00 00 00+
+   1179		  00 00	00 00 00 BF BF+
+   1180		  BF BF	00 00 00 00 00+
+   1181		  00 00	BF BF BF 00 00+
+   1182		  00 BF	BF BF 00 00 90+
+   1183		  90 90	90 00 00 00 00+
+   1184		  D3 D1	C8 C8 D4 00 D4+
+   1185		  D4 D4
+2  1186	    15E3  D4 D3	D3 D4 D3 D1 C8+			 db									    +
+   1187		  00 00	00 00 00 00 00+	 "‘””‘”—»         øøø        øøø   øøø  åååå   ‘”——‘   ‘‘‘‘‘‘”—»         øøø        øøø "
+   1188		  00 00	BF BF BF 00 00+
+   1189		  00 00	00 00 00 00 BF+
+   1190		  BF BF	00 00 00 BF BF+
+   1191		  BF 00	00 8C 8C 8C 8C+
+   1192		  00 00	00 D4 D3 D1 D1+
+   1193		  D4 00	00 00 D4 D4 D4+
+   1194		  D4 D4	D4 D3 D1 C8 00+
+   1195		  00 00	00 00 00 00 00+
+   1196		  00 BF	BF BF 00 00 00+
+   1197		  00 00	00 00 00 BF BF+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 22
+install.asm
+
+
+
+   1198		  BF 00
+2  1199	    1639  00 00	BF BF BF 00 00+			 db									    +
+   1200		  8B 8B	8B 8B 00 00 00+	 "  øøø  ãããã   ‘””‘      ‘‘‘‘”—»         øøø       øøø  øøøø   ãããã   ‘‘‘»       ‘‘‘”— "
+   1201		  D4 D3	D3 D4 00 00 00+
+   1202		  00 00	00 D4 D4 D4 D4+
+   1203		  D3 D1	C8 00 00 00 00+
+   1204		  00 00	00 00 00 BF BF+
+   1205		  BF 00	00 00 00 00 00+
+   1206		  00 BF	BF BF 00 00 BF+
+   1207		  BF BF	BF 00 00 00 8B+
+   1208		  8B 8B	8B 00 00 00 D4+
+   1209		  D4 D4	C8 00 00 00 00+
+   1210		  00 00	00 D4 D4 D4 D3+
+   1211		  D1 00
+2  1212	    168F  00 00	00 00 00 00 00+			 db									    +
+   1213		  00 00	BF BF BF 00 00+	 "         øøø    øøøøøøøøøøøø   ––––   ‘‘—         ‘‘”           øøøøøøøøøøøøøøøøøø    "
+   1214		  00 00	BF BF BF BF BF+
+   1215		  BF BF	BF BF BF BF BF+
+   1216		  00 00	00 D0 D0 D0 D0+
+   1217		  00 00	00 D4 D4 D1 00+
+   1218		  00 00	00 00 00 00 00+
+   1219		  00 D4	D4 D3 00 00 00+
+   1220		  00 00	00 00 00 00 00+
+   1221		  00 BF	BF BF BF BF BF+
+   1222		  BF BF	BF BF BF BF BF+
+   1223		  BF BF	BF BF BF 00 00+
+   1224		  00 00
+2  1225	    16E5  D0 D0	D0 D0 00 00 00+			 db									    +
+   1226		  D4 D3	00 00 00 00 00+	 "––––   ‘”           ‘             øøøøøøøøøøøøøøø      ––––   ‘                       "
+   1227		  00 00	00 00 00 00 D4+
+   1228		  00 00	00 00 00 00 00+
+   1229		  00 00	00 00 00 00 BF+
+   1230		  BF BF	BF BF BF BF BF+
+   1231		  BF BF	BF BF BF BF BF+
+   1232		  00 00	00 00 00 00 D0+
+   1233		  D0 D0	D0 00 00 00 D4+
+   1234		  00 00	00 00 00 00 00+
+   1235		  00 00	00 00 00 00 00+
+   1236		  00 00	00 00 00 00 00+
+   1237		  00 00
+2  1238	    173B  00 00	00 00 BF BF BF+			 db									    +
+   1239		  BF 00	00 00 00 00 00+	 "    øøøø                ––––                                                   ––––   "
+   1240		  00 00	00 00 00 00 00+
+   1241		  00 00	00 D0 D0 D0 D0+
+   1242		  00 00	00 00 00 00 00+
+   1243		  00 00	00 00 00 00 00+
+   1244		  00 00	00 00 00 00 00+
+   1245		  00 00	00 00 00 00 00+
+   1246		  00 00	00 00 00 00 00+
+   1247		  00 00	00 00 00 00 00+
+   1248		  00 00	00 00 00 00 00+
+   1249		  00 00	D0 D0 D0 D0 00+
+   1250		  00 00
+2  1251	    1791  00 00	00 00 00 00 00+			 db									    +
+   1252		  00 00	00 00 00 00 00+	 "                                                ––––                                  "
+   1253		  00 00	00 00 00 00 00+
+   1254		  00 00	00 00 00 00 00+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 23
+install.asm
+
+
+
+   1255		  00 00	00 00 00 00 00+
+   1256		  00 00	00 00 00 00 00+
+   1257		  00 00	00 00 00 00 D0+
+   1258		  D0 D0	D0 00 00 00 00+
+   1259		  00 00	00 00 00 00 00+
+   1260		  00 00	00 00 00 00 00+
+   1261		  00 00	00 00 00 00 00+
+   1262		  00 00	00 00 00 00 00+
+   1263		  00 00
+2  1264	    17E7  BF BF	BF BF BF BF 00+			 db									    +
+   1265		  00 00	00 00 00 00 00+	 "øøøøøø           ––––                               øøøøøøøøøø          ––––          "
+   1266		  00 00	00 D0 D0 D0 D0+
+   1267		  00 00	00 00 00 00 00+
+   1268		  00 00	00 00 00 00 00+
+   1269		  00 00	00 00 00 00 00+
+   1270		  00 00	00 00 00 00 00+
+   1271		  00 00	00 BF BF BF BF+
+   1272		  BF BF	BF BF BF BF 00+
+   1273		  00 00	00 00 00 00 00+
+   1274		  00 00	D0 D0 D0 D0 00+
+   1275		  00 00	00 00 00 00 00+
+   1276		  00 00
+2  1277	    183D  00 00	00 00 00 00 00+			 db									    +
+   1278		  00 00	00 00 00 00 00+	 "                    øøøøøøøøøøøø         –––– ‡     ‡                      øøøø øøø øø"
+   1279		  00 00	00 00 00 00 BF+
+   1280		  BF BF	BF BF BF BF BF+
+   1281		  BF BF	BF BF 00 00 00+
+   1282		  00 00	00 00 00 00 D0+
+   1283		  D0 D0	D0 00 E0 00 00+
+   1284		  00 00	00 E0 00 00 00+
+   1285		  00 00	00 00 00 00 00+
+   1286		  00 00	00 00 00 00 00+
+   1287		  00 00	00 00 00 BF BF+
+   1288		  BF BF	00 BF BF BF 00+
+   1289		  BF BF
+2  1290	    1893  BF 00	00 00 00 00 00+			 db									    +
+   1291		  00 00	00 D0 D0 D0 D0+	 "ø         ––––‡‡‡‡‡‡‡‡                     øøø  øøø   øøø        ––––       ‡         "
+   1292		  E0 E0	E0 E0 E0 E0 E0+
+   1293		  E0 00	00 00 00 00 00+
+   1294		  00 00	00 00 00 00 00+
+   1295		  00 00	00 00 00 00 00+
+   1296		  00 BF	BF BF 00 00 BF+
+   1297		  BF BF	00 00 00 BF BF+
+   1298		  BF 00	00 00 00 00 00+
+   1299		  00 00	D0 D0 D0 D0 00+
+   1300		  00 00	00 00 00 00 E0+
+   1301		  00 00	00 00 00 00 00+
+   1302		  00 00
+2  1303	    18E9  00 00	00 00 00 00 00+			 db									    +
+   1304		  00 00	00 00 00 BF BF+	 "            øøø  øøø   øøø        ––––                             øøø øøø    øøø     "
+   1305		  BF 00	00 BF BF BF 00+
+   1306		  00 00	BF BF BF 00 00+
+   1307		  00 00	00 00 00 00 D0+
+   1308		  D0 D0	D0 00 00 00 00+
+   1309		  00 00	00 00 00 00 00+
+   1310		  00 00	00 00 00 00 00+
+   1311		  00 00	00 00 00 00 00+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 24
+install.asm
+
+
+
+   1312		  00 00	00 00 BF BF BF+
+   1313		  00 BF	BF BF 00 00 00+
+   1314		  00 BF	BF BF 00 00 00+
+   1315		  00 00
+2  1316	    193F  00 00	00 C8 C8 C8 C8+			 db									    +
+   1317		  00 00	00 00 00 00 00+	 "   »»»»                             øøø øøø    øøø        ƒƒƒƒ ‡‡‡   ‡                "
+   1318		  00 00	00 00 00 00 00+
+   1319		  00 00	00 00 00 00 00+
+   1320		  00 00	00 00 00 00 00+
+   1321		  00 BF	BF BF 00 BF BF+
+   1322		  BF 00	00 00 00 BF BF+
+   1323		  BF 00	00 00 00 00 00+
+   1324		  00 00	C4 C4 C4 C4 00+
+   1325		  E0 E0	E0 00 00 00 E0+
+   1326		  00 00	00 00 00 00 00+
+   1327		  00 00	00 00 00 00 00+
+   1328		  00 00
+2  1329	    1995  00 00	00 00 00 BF BF+			 db									    +
+   1330		  BF BF	BF BF 00 00 00+	 "     øøøøøø     øøø        »»»»‡   ‡ ‡‡                      øøøøø    øøøø        ¿¿¿¿"
+   1331		  00 00	BF BF BF 00 00+
+   1332		  00 00	00 00 00 00 C8+
+   1333		  C8 C8	C8 E0 00 00 00+
+   1334		  E0 00	E0 E0 00 00 00+
+   1335		  00 00	00 00 00 00 00+
+   1336		  00 00	00 00 00 00 00+
+   1337		  00 00	00 00 00 BF BF+
+   1338		  BF BF	BF 00 00 00 00+
+   1339		  BF BF	BF BF 00 00 00+
+   1340		  00 00	00 00 00 C0 C0+
+   1341		  C0 C0
+2  1342	    19EB  E0 00	00 00 E0 E0 E0+			 db									    +
+   1343		  00 00	00 00 00 00 00+	 "‡   ‡‡‡                        øøø     øøø         ¿¿¿¿ ‡‡‡‡                          "
+   1344		  00 00	00 00 00 00 00+
+   1345		  00 00	00 00 00 00 00+
+   1346		  00 00	00 BF BF BF 00+
+   1347		  00 00	00 00 BF BF BF+
+   1348		  00 00	00 00 00 00 00+
+   1349		  00 00	C0 C0 C0 C0 00+
+   1350		  E0 E0	E0 E0 00 00 00+
+   1351		  00 00	00 00 00 00 00+
+   1352		  00 00	00 00 00 00 00+
+   1353		  00 00	00 00 00 00 00+
+   1354		  00 00
+2  1355	    1A41  00 00	00 00 00 00 00+			 db									    +
+   1356		  00 BF	BF 00 00 00 00+	 "        øø          ¿¿¿¿                                                   ????       "
+   1357		  00 00	00 00 00 00 C0+
+   1358		  C0 C0	C0 00 00 00 00+
+   1359		  00 00	00 00 00 00 00+
+   1360		  00 00	00 00 00 00 00+
+   1361		  00 00	00 00 00 00 00+
+   1362		  00 00	00 00 00 00 00+
+   1363		  00 00	00 00 00 00 00+
+   1364		  00 00	00 00 00 00 00+
+   1365		  00 00	00 00 00 3F 3F+
+   1366		  3F 3F	00 00 00 00 00+
+   1367		  00 00
+2  1368	    1A97  00 00	00 00 00 00 00+			 db									    +
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 25
+install.asm
+
+
+
+   1369		  00 00	00 00 00 00 00+	 "                                            ???? ‡‡‡   ‡                     øøøøøøøøø"
+   1370		  00 00	00 00 00 00 00+
+   1371		  00 00	00 00 00 00 00+
+   1372		  00 00	00 00 00 00 00+
+   1373		  00 00	00 00 00 00 00+
+   1374		  00 00	3F 3F 3F 3F 00+
+   1375		  E0 E0	E0 00 00 00 E0+
+   1376		  00 00	00 00 00 00 00+
+   1377		  00 00	00 00 00 00 00+
+   1378		  00 00	00 00 00 00 00+
+   1379		  BF BF	BF BF BF BF BF+
+   1380		  BF BF
+2  1381	    1AED  BF BF	BF BF 00 00 00+			 db									    +
+   1382		  00 00	00 00 00 00 DC+	 "øøøø         ‹‹‹‹‡   ‡ ‡‡                     øøøøøøøøøøøøøø        ››››‡   ‡‡‡       "
+   1383		  DC DC	DC E0 00 00 00+
+   1384		  E0 00	E0 E0 00 00 00+
+   1385		  00 00	00 00 00 00 00+
+   1386		  00 00	00 00 00 00 00+
+   1387		  00 00	00 00 BF BF BF+
+   1388		  BF BF	BF BF BF BF BF+
+   1389		  BF BF	BF BF 00 00 00+
+   1390		  00 00	00 00 00 DD DD+
+   1391		  DD DD	E0 00 00 00 E0+
+   1392		  E0 E0	00 00 00 00 00+
+   1393		  00 00
+2  1394	    1B43  00 00	00 00 00 00 00+			 db									    +
+   1395		  00 00	00 00 00 00 00+	 "               øøøøøøøøøøøøø         ›››› ‡‡‡‡                         øøøø           "
+   1396		  00 BF	BF BF BF BF BF+
+   1397		  BF BF	BF BF BF BF BF+
+   1398		  00 00	00 00 00 00 00+
+   1399		  00 00	DD DD DD DD 00+
+   1400		  E0 E0	E0 E0 00 00 00+
+   1401		  00 00	00 00 00 00 00+
+   1402		  00 00	00 00 00 00 00+
+   1403		  00 00	00 00 00 00 00+
+   1404		  00 BF	BF BF BF 00 00+
+   1405		  00 00	00 00 00 00 00+
+   1406		  00 00
+2  1407	    1B99  00 00	00 00 00 00 DE+			 db									    +
+   1408		  DE DE	DE 00 00 00 00+	 "      ﬁﬁﬁﬁ                              øøø                  ﬁﬁﬁﬁ                     "
+   1409		  00 00	00 00 00 00 00+
+   1410		  00 00	00 00 00 00 00+
+   1411		  00 00	00 00 00 00 00+
+   1412		  00 00	00 00 00 BF BF+
+   1413		  BF 00	00 00 00 00 00+
+   1414		  00 00	00 00 00 00 00+
+   1415		  00 00	00 00 00 DE DE+
+   1416		  DE DE	00 00 00 00 00+
+   1417		  00 00	00 00 00 00 00+
+   1418		  00 00	00 00 00 00 00+
+   1419		  00 00
+2  1420	    1BEF  00 00	00 00 00 00 00+			 db									    +
+   1421		  00 BF	BF BF 00 00 00+	 "        øøø                   ‡‡‡‡ ‡‡ ‡‡‡                      øøø                   ‡"
+   1422		  00 00	00 00 00 00 00+
+   1423		  00 00	00 00 00 00 00+
+   1424		  00 00	E0 E0 E0 E0 00+
+   1425		  E0 E0	00 E0 E0 E0 00+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 26
+install.asm
+
+
+
+   1426		  00 00	00 00 00 00 00+
+   1427		  00 00	00 00 00 00 00+
+   1428		  00 00	00 00 00 00 00+
+   1429		  BF BF	BF 00 00 00 00+
+   1430		  00 00	00 00 00 00 00+
+   1431		  00 00	00 00 00 00 00+
+   1432		  00 E0
+2  1433	    1C45  E0 E0	E0 E0 00 00 E0+			 db									    +
+   1434		  00 00	00 E0 00 00 00+	 "‡‡‡‡  ‡   ‡                     øøøøøø                ‡‡‡‡‡  ‡   ‡                    "
+   1435		  00 00	00 00 00 00 00+
+   1436		  00 00	00 00 00 00 00+
+   1437		  00 00	00 00 BF BF BF+
+   1438		  BF BF	BF 00 00 00 00+
+   1439		  00 00	00 00 00 00 00+
+   1440		  00 00	00 00 00 E0 E0+
+   1441		  E0 E0	E0 00 00 E0 00+
+   1442		  00 00	E0 00 00 00 00+
+   1443		  00 00	00 00 00 00 00+
+   1444		  00 00	00 00 00 00 00+
+   1445		  00 00
+2  1446	    1C9B  00 BF	BF BF BF BF BF+			 db									    +
+   1447		  00 00	00 00 00 00 00+	 " øøøøøø                 ‡‡ ‡‡‡                       øøøøø                "
+   1448		  00 00	00 00 00 00 00+
+   1449		  00 00	F0 F0 F0 F0 00+
+   1450		  E0 E0	00 E0 E0 E0 00+
+   1451		  00 00	00 00 00 00 00+
+   1452		  00 00	00 00 00 00 00+
+   1453		  00 00	00 00 00 00 00+
+   1454		  00 BF	BF BF BF BF 00+
+   1455		  00 00	00 00 00 00 00+
+   1456		  00 00	00 00 00 00 00+
+   1457		  00 F0	F0 F0 F0
+2  1458
+1  1459	    1CED  00			 VideoStranka	 db	 0
+1  1460	    1CEE  07			 VideoAtribut	 db	 7
+1  1461	    1CEF  ??			 _SVGA		 db	 ?
+1  1462
+1  1463	    1CF0  49 6E	73 74 61 6C 61+	 Intro		 db	 "Instalace ATREX Boot Manageru",0dh,0ah
+   1464		  63 65	20 41 54 52 45+
+   1465		  58 20	42 6F 6F 74 20+
+   1466		  4D 61	6E 61 67 65 72+
+   1467		  75 0D	0A
+1  1468	    1D0F  54 A1	6D 74 6F 20 70+			 db	 "T°mto	programem nainstalujete	ATREX Boot Manager na V†Á poü°taü", +
+   1469		  72 6F	67 72 61 6D 65+	 0dh,0ah
+   1470		  6D 20	6E 61 69 6E 73+
+   1471		  74 61	6C 75 6A 65 74+
+   1472		  65 20	41 54 52 45 58+
+   1473		  20 42	6F 6F 74 20 4D+
+   1474		  61 6E	61 67 65 72 20+
+   1475		  6E 61	20 56 A0 E7 20+
+   1476		  70 6F	9F A1 74 61 9F+
+   1477		  0D 0A
+1  1478	    1D50  56 61	72 6F 76 A0 6E+			 db	 "Varov†n°: Autor programu neruü° za moßn† poÁkozen° VaÁich dat	üi  +
+   1479		  A1 3A	20 41 75 74 6F+	 hardwaru",0dh,0ah
+   1480		  72 20	70 72 6F 67 72+
+   1481		  61 6D	75 20 6E 65 72+
+   1482		  75 9F	A1 20 7A 61 20+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 27
+install.asm
+
+
+
+   1483		  6D 6F	A7 6E A0 20 70+
+   1484		  6F E7	6B 6F 7A 65 6E+
+   1485		  A1 20	56 61 E7 69 63+
+   1486		  68 20	64 61 74 20 9F+
+   1487		  69 20	68 61 72 64 77+
+   1488		  61 72	75 0D 0A
+1  1489	    1D9B  20 20	20 20 20 20 20+			 db	 "	    p˝i	pouß°v†n° tohoto softwarovÇho produktu!",0dh,0ah
+   1490		  20 20	20 70 FD 69 20+
+   1491		  70 6F	75 A7 A1 76 A0+
+   1492		  6E A1	20 74 6F 68 6F+
+   1493		  74 6F	20 73 6F 66 74+
+   1494		  77 61	72 6F 76 82 68+
+   1495		  6F 20	70 72 6F 64 75+
+   1496		  6B 74	75 21 0D 0A
+1  1497	    1DD2  4D A0	74 65 2D 6C 69+			 db	 "M†te-li nainstalovanÏ	program	pro sledov†n° z†pisu na	pevnÏ disk, +
+   1498		  20 6E	61 69 6E 73 74+	 ",0dh,0ah
+   1499		  61 6C	6F 76 61 6E EC+
+   1500		  20 70	72 6F 67 72 61+
+   1501		  6D 20	70 72 6F 20 73+
+   1502		  6C 65	64 6F 76 A0 6E+
+   1503		  A1 20	7A A0 70 69 73+
+   1504		  75 20	6E 61 20 70 65+
+   1505		  76 6E	EC 20 64 69 73+
+   1506		  6B 2C	0D 0A
+1  1507	    1E15  75 6B	6F 6E 9F 65 74+			 db	 "ukonüete instalaün° program a	deaktivujte ho!!!",0dh,0ah
+   1508		  65 20	69 6E 73 74 61+
+   1509		  6C 61	9F 6E A1 20 70+
+   1510		  72 6F	67 72 61 6D 20+
+   1511		  61 20	64 65 61 6B 74+
+   1512		  69 76	75 6A 74 65 20+
+   1513		  68 6F	21 21 21 0D 0A
+1  1514	    1E46  44 85	6C 65 A7 69 74+			 db	 "DÖleßitÇ: Text v hranatÏch z†vork†ch [] zobrazuje moßnost VaÁ°    +
+   1515		  82 3A	20 54 65 78 74+	 volby.",0dh,0ah
+   1516		  20 76	20 68 72 61 6E+
+   1517		  61 74	EC 63 68 20 7A+
+   1518		  A0 76	6F 72 6B A0 63+
+   1519		  68 20	5B 5D 20 7A 6F+
+   1520		  62 72	61 7A 75 6A 65+
+   1521		  20 6D	6F A7 6E 6F 73+
+   1522		  74 20	56 61 E7 A1 20+
+   1523		  76 6F	6C 62 79 2E 0D+
+   1524		  0A
+1  1525	    1E8D  20 20	20 20 20 20 20+			 db	 "	    Klade se zde dÖraz na velikost p°smen.",0dh,0ah
+   1526		  20 20	20 4B 6C 61 64+
+   1527		  65 20	73 65 20 7A 64+
+   1528		  65 20	64 85 72 61 7A+
+   1529		  20 6E	61 20 76 65 6C+
+   1530		  69 6B	6F 73 74 20 70+
+   1531		  A1 73	6D 65 6E 2E 0D+
+   1532		  0A
+1  1533	    1EBF  20 20	20 20 20 20 20+			 db	 "	    a,A: ano/n,N:ne/?:nev°m/t:text/g:grafika",00
+   1534		  20 20	20 61 2C 41 3A+
+   1535		  20 61	6E 6F 2F 6E 2C+
+   1536		  4E 3A	6E 65 2F 3F 3A+
+   1537		  6E 65	76 A1 6D 2F 74+
+   1538		  3A 74	65 78 74 2F 67+
+   1539		  3A 67	72 61 66 69 6B+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 28
+install.asm
+
+
+
+   1540		  61 00
+1  1541	    1EF2  4F 70	72 61 76 64 75+	 Install?	 db	 "Opravdu si p˝ejete nainstalovat ATREX	Boot Manager? [A/n] ",00
+   1542		  20 73	69 20 70 FD 65+
+   1543		  6A 65	74 65 20 6E 61+
+   1544		  69 6E	73 74 61 6C 6F+
+   1545		  76 61	74 20 41 54 52+
+   1546		  45 58	20 42 6F 6F 74+
+   1547		  20 4D	61 6E 61 67 65+
+   1548		  72 3F	20 5B 41 2F 6E+
+   1549		  5D 20	00
+1  1550	    1F2D  55 6B	6F 6E 9F 75 6A+	 Ukoncuji	 db	 "Ukonüuji instalaci ATREX Boot	Manageru...",00
+   1551		  69 20	69 6E 73 74 61+
+   1552		  6C 61	63 69 20 41 54+
+   1553		  52 45	58 20 42 6F 6F+
+   1554		  74 20	4D 61 6E 61 67+
+   1555		  65 72	75 2E 2E 2E 00
+1  1556	    1F57  50 72	6F 76 D8 FD 75+	 Proveruji	 db	 "Provÿ˝uji disk HDD0: .",00
+   1557		  6A 69	20 64 69 73 6B+
+   1558		  20 48	44 44 30 3A 20+
+   1559		  2E 00
+1  1560	    1F6E  2E 00			 Punkt		 db	 ".",00
+1  1561	    1F70  50 FD	69 20 9F 74 65+	 ProvErr	 db	 "P˝i üten° disku HDD0 doÁlo k chybÿ ",00
+   1562		  6E A1	20 64 69 73 6B+
+   1563		  75 20	48 44 44 30 20+
+   1564		  64 6F	E7 6C 6F 20 6B+
+   1565		  20 63	68 79 62 D8 20+
+   1566		  00
+1  1567	    1F94  20 4F	70 72 61 76 74+	 ProvErr_	 db	 " Opravte pros°m chybu	a zkuste znovu.",00
+   1568		  65 20	70 72 6F 73 A1+
+   1569		  6D 20	63 68 79 62 75+
+   1570		  20 61	20 7A 6B 75 73+
+   1571		  74 65	20 7A 6E 6F 76+
+   1572		  75 2E	00
+1  1573	    1FBA  0D 0A	00		 NR		 db	 0dh,0ah,00
+1  1574	    1FBD  20 76	20 70 6F FD A0+	 OK		 db	 " v po˝†dku",00
+   1575		  64 6B	75 00
+1  1576	    1FC8  20 6E	61 6C 65 7A 65+	 Err		 db	 " nalezena chyba",00
+   1577		  6E 61	20 63 68 79 62+
+   1578		  61 00
+1  1579	    1FD8  20 6E	65 6C 7A 65 20+	 Exit		 db	 " nelze pokraüovat",00
+   1580		  70 6F	6B 72 61 9F 6F+
+   1581		  76 61	74 00
+1  1582	    1FEA  20 6E	61 20 64 69 73+	 AlreadyI	 db	 " na disku byl	nalezen	zavadÿü	pro ATREX Boot Manager ",00
+   1583		  6B 75	20 62 79 6C 20+
+   1584		  6E 61	6C 65 7A 65 6E+
+   1585		  20 7A	61 76 61 64 D8+
+   1586		  9F 20	70 72 6F 20 41+
+   1587		  54 52	45 58 20 42 6F+
+   1588		  6F 74	20 4D 61 6E 61+
+   1589		  67 65	72 20 00
+1  1590	    2020  2C 20	61 6C 65 20 6A+	 AlreadyIErr	 db	 ", ale	je poÁkozenÏ.",00
+   1591		  65 20	70 6F E7 6B 6F+
+   1592		  7A 65	6E EC 2E 00
+1  1593	    2034  49 6E	66 6F 72 6D 61+	 AlII		 db	 "Informace o nalezenÇ instalaci:",0dh,0ah
+   1594		  63 65	20 6F 20 6E 61+
+   1595		  6C 65	7A 65 6E 82 20+
+   1596		  69 6E	73 74 61 6C 61+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 29
+install.asm
+
+
+
+   1597		  63 69	3A 0D 0A
+1  1598	    2055  20 20	76 65 72 7A 65+			 db	 "  verze: 0000.0000.0000.X   slinkov†no dne: 00/00/00 pro CPU:	    +
+   1599		  3A 20	30 30 30 30 2E+	 0000",00
+   1600		  30 30	30 30 2E 30 30+
+   1601		  30 30	2E 58 20 20 20+
+   1602		  73 6C	69 6E 6B 6F 76+
+   1603		  A0 6E	6F 20 64 6E 65+
+   1604		  3A 20	30 30 2F 30 30+
+   1605		  2F 30	30 20 70 72 6F+
+   1606		  20 43	50 55 3A 20 30+
+   1607		  30 30	30 00
+1  1608	    2098  53 65	6B 74 6F 72 79+	 AlData		 db	 "Sektory vyßadovanÇ instalac° jiß obsahuj° data! Zobrazit	    +
+   1609		  20 76	79 A7 61 64 6F+	 informace? [a/n] ",00
+   1610		  76 61	6E 82 20 69 6E+
+   1611		  73 74	61 6C 61 63 A1+
+   1612		  20 6A	69 A7 20 6F 62+
+   1613		  73 61	68 75 6A A1 20+
+   1614		  64 61	74 61 21 20 5A+
+   1615		  6F 62	72 61 7A 69 74+
+   1616		  20 69	6E 66 6F 72 6D+
+   1617		  61 63	65 3F 20 5B 61+
+   1618		  2F 6E	5D 20 00
+1  1619	    20E3  50 FD	65 6A 65 74 65+	 Pokracovat	 db	 "P˝ejete si pokracovat	v instalaci? [A/n] ",00
+   1620		  20 73	69 20 70 6F 6B+
+   1621		  72 61	63 6F 76 61 74+
+   1622		  20 76	20 69 6E 73 74+
+   1623		  61 6C	61 63 69 3F 20+
+   1624		  5B 41	2F 6E 5D 20 00
+1  1625	    210D  56 6C	61 73 74 6E A1+	 DetekceSVGA	 db	 "Vlastn°te grafickou kartu SVGA? [a/?/n] ",00
+   1626		  74 65	20 67 72 61 66+
+   1627		  69 63	6B 6F 75 20 6B+
+   1628		  61 72	74 75 20 53 56+
+   1629		  47 41	3F 20 5B 61 2F+
+   1630		  3F 2F	6E 5D 20 00
+1  1631	    2136  4A 73	74 65 20 70 FD+	 TestSVGA_	 db	 "Jste p˝ipraveni pro testov†n°	poußitelnÇho videom¢du?	[a/n] ",00
+   1632		  69 70	72 61 76 65 6E+
+   1633		  69 20	70 72 6F 20 74+
+   1634		  65 73	74 6F 76 A0 6E+
+   1635		  A1 20	70 6F 75 A7 69+
+   1636		  74 65	6C 6E 82 68 6F+
+   1637		  20 76	69 64 65 6F 6D+
+   1638		  A2 64	75 3F 20 5B 61+
+   1639		  2F 6E	5D 20 00
+1  1640	    2173  4A 65	20 6D 6F 7A 6E+	 SVGA		 db	 "Je moznÇ prec°st tento text bez anom†li°? [a/n] ",00
+   1641		  82 20	70 72 65 63 A1+
+   1642		  73 74	20 74 65 6E 74+
+   1643		  6F 20	74 65 78 74 20+
+   1644		  62 65	7A 20 61 6E 6F+
+   1645		  6D A0	6C 69 A1 3F 20+
+   1646		  5B 61	2F 6E 5D 20 00
+1  1647	    21A4  54 65	73 74 20 53 56+	 SVGAOk		 db	 "Test SVGA probÿhl v po˝†dku",00
+   1648		  47 41	20 70 72 6F 62+
+   1649		  D8 68	6C 20 76 20 70+
+   1650		  6F FD	A0 64 6B 75 00
+1  1651	    21C0  54 65	73 74 20 53 56+	 SVGAErr	 db	 "Test SVGA se nezda˝il",00
+   1652		  47 41	20 73 65 20 6E+
+   1653		  65 7A	64 61 FD 69 6C+
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 30
+install.asm
+
+
+
+   1654		  00
+1  1655	    21D6  4E 61	69 6E 73 74 61+	 GDIorTEXT	 db	 "Nainstalovat textovou	nebo grafickou verzi? [t/g] ",00
+   1656		  6C 6F	76 61 74 20 74+
+   1657		  65 78	74 6F 76 6F 75+
+   1658		  20 6E	65 62 6F 20 67+
+   1659		  72 61	66 69 63 6B 6F+
+   1660		  75 20	76 65 72 7A 69+
+   1661		  3F 20	5B 74 2F 67 5D+
+   1662		  20 00
+1  1663
+1  1664	    2209  0200*(00)		 DiskTMP	 db	 512 dup(0)
+   1665
+   1666	    2409			 _TEXT	 ends
+   1667					 END	 @Filename
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 31
+Symbol Table
+
+
+
+
+Symbol Name		Type   Value			   Cref	(defined at #)
+
+??DATE			Text   "28/12/94"		   12
+??FILENAME		Text   "install	"		   14
+??TIME			Text   "20:59:42"		   16
+??VERSION		Number 0314			   18
+@CPU			Text   1F9FH			   #3  19
+@CURSEG			Text   _TEXT			   #1
+@FILENAME		Text   INSTALL			   1667
+@WORDSIZE		Text   4			   #1  #3
+ALDATA			Byte   _TEXT:2098		   #1608
+ALII			Byte   _TEXT:2034		   #1593
+ALREADYI		Byte   _TEXT:1FEA		   #1582
+ALREADYIERR		Byte   _TEXT:2020		   #1590
+CHECKDISK		Near   _TEXT:03A4		   125	#417
+CHECKDISK_1		Near   _TEXT:0406		   #455	 461
+CHECKDISK_2		Near   _TEXT:03DA		   #435	 463
+CHECKDISK_3		Near   _TEXT:03F9		   434	#449
+CHECKDISK_ERR		Near   _TEXT:042C		   430	447  #470
+CLRSCR			Near   _TEXT:0345		   #342
+COPYSTRING		Near   _TEXT:035F		   #358
+COPYSTRING2		Near   _TEXT:036A		   #372
+DETEKCESVGA		Byte   _TEXT:210D		   #1625
+DISKTMP			Byte   _TEXT:2209		   428	431  445  453  #1664
+EMPTY			Near   _TEXT:0305		   287	#291
+ERR			Byte   _TEXT:1FC8		   471	#1576
+EXIT			Byte   _TEXT:1FD8		   473	#1579
+FIN			Near   _TEXT:02DF		   257	#260
+FLUSHKBD		Near   _TEXT:02F5		   #280
+FLUSHKBD_		Near   _TEXT:02F7		   #284	 290
+GDIORTEXT		Byte   _TEXT:21D6		   #1655
+GOTOXY			Near   _TEXT:0339		   #331	 345  397  405
+HEADERST_		Struct _TEXT:0105 HEADERST	   #72
+INST			Near   _TEXT:01A4		   #105	 111
+INSTALL			Near   _TEXT:0100		   #5  1667
+INSTALL?		Byte   _TEXT:1EF2		   103	#1541
+INSTERR			Near   _TEXT:01B5		   110	#112
+INSTOK			Near   _TEXT:01CE		   108	#120
+INTRO			Byte   _TEXT:1CF0		   99  #1463
+LOGO_GR			Near   _TEXT:0771		   179	#627
+LS_			Near   _TEXT:035F		   #359	 364
+LS_2			Near   _TEXT:036A		   #373	 378
+LS_EX_			Near   _TEXT:0369		   363	#365
+LS_EX_2			Near   _TEXT:0374		   377	#379
+LT100			Near   _TEXT:031C		   306	#309
+NR			Byte   _TEXT:1FBA		   101	113  117  121  148  150	 152  154  468	475  #1573
+OK			Byte   _TEXT:1FBD		   466	#1574
+POKRACOVAT		Byte   _TEXT:20E3		   #1619
+PRINTHEX32		Near   _TEXT:0380		   #393
+PRINT_DIGIT		Near   _TEXT:029A		   #213	 225
+PRINT_HEX		Near   _TEXT:0296		   #210	 399  407
+PRINT__DIGIT		Near   _TEXT:02B8		   #235	 247
+PRINT__HEX		Near   _TEXT:02B4		   #232	 480
+PROVERR			Byte   _TEXT:1F70		   477	#1561
+PROVERR_		Byte   _TEXT:1F94		   483	#1567
+PROVERUJI		Byte   _TEXT:1F57		   123	#1556
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 32
+Symbol Table
+
+
+
+PRTCHR			Near   _TEXT:02E1		   258	#266  310  313
+PRTDEC			Near   _TEXT:0308		   #300	 307
+PRTSTR			Near   _TEXT:02D2		   100	102  104  114  116  118	 122  124  149	151  153  155  157  #253  +
+							   467	469  472  474  476  478	 482  484
+PS_2			Near   _TEXT:02D3		   #255	 259
+PUNKT			Byte   _TEXT:1F6E		   481	#1560
+READKEY			Near   _TEXT:039F		   106	127  159  #411	485
+SEKTOR			Byte   _TEXT:0468		   418	419  420  436  437  462	 #488
+SEKTORU			Number 0016			   462	#495
+SETSEGMENTS		Near   _TEXT:0375		   178	#383
+SHOW_LOGO		Near   _TEXT:0260		   145	#177
+SHOW_LOGO_1		Near   _TEXT:0268		   #181	 201
+SHOW_LOGO_2		Near   _TEXT:026F		   #185	 197
+SHOW_LOGO_X		Word   _TEXT:0292		   186	192  #203
+SHOW_LOGO_Y		Word   _TEXT:0294		   182	191  #204
+SKIP10			Near   _TEXT:0321		   308	#311
+SOUCET			Dword  _TEXT:0469		   458	#489
+SVGA			Byte   _TEXT:2173		   156	#1640
+SVGAERR			Byte   _TEXT:21C0		   #1651
+SVGAOK			Byte   _TEXT:21A4		   #1647
+TESTSVGA		Near   _TEXT:01F1		   128	#136
+TESTSVGA_		Byte   _TEXT:2136		   #1631
+TSVGAERR		Near   _TEXT:024E		   163	#168
+TSVGAOK			Near   _TEXT:0245		   161	#165
+TSVGAR			Near   _TEXT:0234		   #158	 164
+TSVGA_E			Near   _TEXT:0254		   167	#170
+UKONCUJI		Byte   _TEXT:1F2D		   115	#1550
+VIDEOATRIBUT		Byte   _TEXT:1CEE		   98  146  171	 222  244  272	346  #1460
+VIDEOSTRANKA		Byte   _TEXT:1CED		   268	322  336  347  #1459
+V_DAC_STD		Near   _TEXT:0471		   142	#497
+WHEREXY			Near   _TEXT:032B		   #318
+_ABMSUMCRC		Dword  _TEXT:046D		   433	#490
+_BMANAGER__		Near   _TEXT:0178		   8  #90
+_SVGA			Byte   _TEXT:1CEF		   166	169  #1461
+
+Structure Name		Type  Offset			   Cref	(defined at #)
+
+HEADERST						   #10	72
+ _DATE_			Byte   0000
+ _FILENAME_		Byte   0008
+ _TIME_			Byte   0010
+ _LINKVER_		Word   0018
+ _CPU_			Word   001A
+ _OSMAJORVER		Word   001C
+ _OSMINORVER		Word   001E
+ _OSBUILDVER		Word   0020
+ _OSSUBVER		Byte   0022
+ _OSMODE		Byte   0023
+ _OS			Byte   0024
+ _OS_			Dword  0025
+ _OS__			Dword  0029
+ _MODULETYPE		Word   002D
+ _OSGRSUBSYSTEM		Byte   002F
+ _MODULEFLAGS		Word   0030
+ _MODMAJORVER		Word   0032
+ _MODMINORVER		Word   0034
+ _MODBUILDVER		Word   0036
+Turbo Assembler	 Version 3.2	    28/12/94 20:59:43	    Page 33
+Symbol Table
+
+
+
+ _MODSUBVER		Byte   0038
+ _NEEDCPU		Byte   0039
+ _NEEDFPU		Byte   003A
+ _STARTEIP		Dword  003B
+ _STARTCS		Word   003F
+ _DATATBLOFF		Dword  0041
+ _DATATBLSEG		Word   0045
+ _RESOURCETBLOFF	Dword  0047
+ _RESOURCETBLSEG	Word   004B
+ _CODETABLEOFF		Dword  004D
+ _CODETABLESEG		Word   0051
+ _IMPORTTBLOFF		Dword  0053
+ _IMPORTTBLSEG		Word   0057
+ _EXPORTTBLOFF		Dword  0059
+ _EXPORTTBLSEG		Word   005D
+ _STARTSP		Dword  005F
+ _STARTSS		Word   0063
+ _MINMEM		Word   0065
+ _MAXMEM		Word   0067
+ _CHECKSUMCRC		Dword  0069
+ _NEEDDOSENVIR		Byte   006D
+ _FILESIZE		Dword  006E
+ _LOADEDOK_		Byte   0072
+
+Groups & Segments	Bit Size Align	Combine	Class	   Cref	(defined at #)
+
+_TEXT			16  2409 Para	none		   #1  2  2  2	2
+

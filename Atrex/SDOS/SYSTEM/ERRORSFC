@@ -1,0 +1,24 @@
+INT00Err:	db	"Program se pokusil pýi vykon n¡ aritmetick‚ operace o dØlØn¡ nulou.$"
+ErrA1:		db	"Pýi vol n¡ funkce % programem % doçlo k chybØ:$",0
+ErrA2:		db	"Pýi pr ci syst‚mu ATREX doçlo k vnitýn¡ chybØ:",13,10,"$"
+ErrB1:		db	"Chyba v pý¡stupu na zaý¡zen¡ %$",0
+ErrB2:		db	"Tisk rna na LPT% nem  pap¡r$",0
+ErrB3:		db	"Pýi dØlen¡ byl zaznamen n dØlitel roven Ÿ¡slu nula$"
+ErrK1:		db	"StisknØte $"
+ErrK2:		db	" Enter-zruçit $"
+ErrK3:		db	" Esc-opakovat $"
+ErrK4:		db	" Esc-zruçit $"
+ErrK5:		db	" Enter-opakovat $"
+ErrK6:		db	" r-registry $"
+ErrK7:		db	" h-ýeçen¡ $"
+ErrH0:		db	" nelze nal‚zt § dn‚ ýeçen¡ odpov¡daj¡c¡ho probl‚mu$"
+ErrH1:		db	" VyŸistØte disketovou mechaniku$"
+ErrH2:		db	" VypnØte poŸ¡taŸ, vypojte pý¡vodn¡ kabely a opØt je zapojte",13,10," na sv‚ m¡sto$"
+ErrH3:		db	" Vhodnìm programem proveÔte kontrolu povrchu na disku$"
+ErrH4:		db	" Zkuste znovu$"
+ErrH5:		db	" Vlo§te pap¡r do tisk rny a zkuste znovu$"
+
+
+
+
+

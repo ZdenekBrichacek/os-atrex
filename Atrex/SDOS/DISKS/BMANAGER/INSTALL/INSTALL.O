@@ -1,0 +1,8 @@
+  r.bp:=Ofs(Font852);
+  r.es:=seg(Font852);
+  r.ah:=$11;
+  r.al:=$21;
+  r.cx:=16;
+  r.bl:=$2;
+  r.dl:=$19;
+  intr($10, r);

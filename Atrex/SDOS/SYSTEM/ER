@@ -1,0 +1,54 @@
+Err_	struc
+	_EAX	dd	0
+	_EBX	dd	0
+	_ECX	dd	0
+	_EDX	dd	0
+	_ESI	dd	0
+	_EDI	dd	0
+	_EBP	dd	0
+	_ESP	dd	0
+	_EIP	dd	0
+	_EFLAGS	dd	0
+	_CS	dw	0
+	_SS	dw	0
+	_DS	dw	0
+	_ES	dw	0
+	_FS	dw	0
+	_GS	dw	0
+	_CR0	dd	0
+	_CR2	dd	0
+	_CR3	dd	0
+	_CR4	dd	0
+Err_	ends
+OldErrReg	Err_ <>
+
+TMP__1		db	0
+TMP__2		db	0
+TMP__3		db	0
+Err_Sh_ID	db	"ID",0
+Err_Sh_VIP	db	"VIP",0
+Err_Sh_VIF	db	"VIF",0
+Err_Sh_VM	db	"VM",0
+Err_Sh_OF	db	"OF",0
+Err_Sh_DF	db	"DF",0
+Err_Sh_TF	db	"TF",0
+Err_Sh_SF	db	"SF",0
+Err_Sh_ZF	db	"ZF",0
+Err_Sh_AF	db	"AF",0
+Err_Sh_PF	db	"PF",0
+Err_Sh_CF	db	"CF",0
+Err_Sh_PG	db	"PG",0
+Err_Sh_CD	db	"CD",0
+Err_Sh_NW	db	"NW",0
+Err_Sh_AM	db	"AM",0
+Err_Sh_WP	db	"WP",0
+Err_Sh_NE	db	"NE",0
+Err_Sh_TS	db	"TS",0
+Err_Sh_EM	db	"EM",0
+Err_Sh_MP	db	"MP",0
+Err_Sh_PE	db	"PE",0
+Err_Sh_PCD	db	"PC",0
+Err_Sh_PWT	db	"PW",0
+Err_Sh_PSE	db	"PS",0
+Err_Sh_PVI	db	"PV",0
+Err_Sh_VME	db	"VM",0
